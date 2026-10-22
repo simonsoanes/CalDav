@@ -154,6 +154,74 @@ public sealed class MigrationTests
         $"DTSTAMP:20260101T000000Z\r\nDTSTART:20260301T090000Z\r\n{(comp == "VEVENT" ? "DTEND:20260301T100000Z\r\n" : "")}SUMMARY:{summary}\r\nEND:{comp}\r\nEND:VCALENDAR\r\n";
 
     [TestMethod]
+    public void PrivateNetworkAccessFollowsAdminApproval()
+    {
+        var approved = new MigrationSource { ServerUrl = "http://baikal.lan/dav.php/", AllowPrivateNetworks = true };
+        Assert.IsTrue(MigrationService.PrivateAllowed(false, actorIsAdmin: true, null, "http://baikal.lan/"));
+        Assert.IsFalse(MigrationService.PrivateAllowed(false, actorIsAdmin: false, null, "http://baikal.lan/"));
+        Assert.IsTrue(MigrationService.PrivateAllowed(false, actorIsAdmin: false, approved, "http://baikal.lan/dav.php/"));
+        Assert.IsFalse(MigrationService.PrivateAllowed(false, actorIsAdmin: false, approved, "http://router.lan/"),
+            "a user must not reuse an admin-approved source to reach a different internal server");
+        Assert.IsTrue(MigrationService.PrivateAllowed(true, actorIsAdmin: false, null, "http://router.lan/"));
+    }
+
+    [TestMethod]
+    public async Task AdministratorsCanImportIntoAnotherAccount()
+    {
+        using var remote = new FakeRemoteServer();
+        remote.Calendar["a.ics"] = Ev("onbehalf-1", "Imported by admin");
+        remote.Contacts["jane.vcf"] = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:onbehalf-c1\r\nFN:Jane Old\r\nN:Old;Jane;;;\r\nEND:VCARD\r\n";
+
+        var factory = await TestHost.GetAsync();
+        int targetId, sourceId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var users = scope.ServiceProvider.GetRequiredService<UserService>();
+            var migrations = scope.ServiceProvider.GetRequiredService<MigrationService>();
+            var admin = await db.Users.FirstAsync(u => u.Username == "alice");
+            var target = await users.CreateAsync("onbehalf", "On Behalf", "onbehalf@example.com", "onbehalf-password", false);
+            var other = await users.CreateAsync("bystander", "Bystander", "bystander@example.com", "bystander-password", false);
+            targetId = target.Id;
+
+            // Non-administrators cannot import into someone else's account.
+            await Assert.ThrowsExactlyAsync<RemoteDavException>(() =>
+                migrations.ConnectAsync(db, other, target, remote.Base + "/", "olduser", "old-secret", null, default));
+
+            sourceId = await migrations.ConnectAsync(db, admin, target, remote.Base + "/", "olduser", "old-secret", null, default);
+            var source = await db.MigrationSources.AsNoTracking().SingleAsync(s => s.Id == sourceId);
+            Assert.AreEqual(target.Id, source.UserId);
+            Assert.AreEqual(admin.Id, source.CreatedByUserId);
+            Assert.IsTrue(source.AllowPrivateNetworks);
+            Assert.IsTrue(await migrations.EnqueueAsync(db, sourceId, target.Id, default));
+        }
+
+        MigrationSource? done = null;
+        for (var i = 0; i < 100 && done == null; i++)
+        {
+            using var scope = factory.Services.CreateScope();
+            var s = await scope.ServiceProvider.GetRequiredService<AppDbContext>().MigrationSources.AsNoTracking().FirstAsync(x => x.Id == sourceId);
+            if (s.Status is MigrationStatus.Completed or MigrationStatus.Failed) done = s;
+            else await Task.Delay(100);
+        }
+        Assert.IsNotNull(done, "Import did not finish");
+        Assert.AreEqual(MigrationStatus.Completed, done.Status, done.Message);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.AreEqual(1, await db.CalendarObjects.CountAsync(o => o.Calendar.OwnerId == targetId && o.Uid == "onbehalf-1"));
+            Assert.AreEqual(1, await db.Cards.CountAsync(c => c.AddressBook.OwnerId == targetId && c.Uid == "onbehalf-c1"));
+
+            // When the user reconnects the source to a different server, the administrator's approval no longer applies.
+            var migrations = scope.ServiceProvider.GetRequiredService<MigrationService>();
+            var target = await db.Users.FirstAsync(u => u.Id == targetId);
+            await migrations.ConnectAsync(db, target, target, remote.Base + "/dav/", "olduser", "old-secret", sourceId, default);
+            Assert.IsFalse((await db.MigrationSources.AsNoTracking().SingleAsync(s => s.Id == sourceId)).AllowPrivateNetworks);
+        }
+    }
+
+    [TestMethod]
     public async Task ImportsCalendarsAndContactsFromAnotherServer()
     {
         using var remote = new FakeRemoteServer();

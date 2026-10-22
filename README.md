@@ -77,7 +77,9 @@ The server implements the requests used by Apple Calendar/Reminders/Contacts, DA
 3. Choose what to import and start. The job runs in the background with progress on the page; each remote collection becomes a new local one with the same name, colour, description and content types, and items keep their file names and UIDs.
 4. Run it again at any time before switching your devices: new items are added and changed items updated (matched by UID). Nothing is ever changed on the old server, and nothing local is deleted.
 
-The old server's password is kept encrypted (data protection key ring) so the import can be re-run; *Remove source* deletes it. Regular users can only reach servers on the public internet unless *Allow outgoing requests to private networks* is enabled; administrators can always import from servers on the local network. Storage quotas apply to imported data.
+The old server's password is kept encrypted (data protection key ring) so the import can be re-run; *Remove source* deletes it. Storage quotas apply to imported data.
+
+**Importing for another user / from the local network.** Regular users can only reach servers on the public internet (unless *Allow outgoing requests to private networks* is enabled server-wide). Administrators get an **Import into** picker on the Import page (also linked as *Import into this account* on each user's admin page): they can connect to a server on the local network, such as an internal Baïkal, and import directly into that user's account. The source then appears in the user's own list, and the user can re-run it against the same server; the administrator's network approval lapses if the source is reconnected to a different address.
 
 ## Using with DAVx⁵
 

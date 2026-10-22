@@ -545,6 +545,12 @@ namespace Nullify.CalDav.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("AllowPrivateNetworks")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("TEXT");
 

@@ -25,6 +25,20 @@
         <h2>Connect to your old server</h2>
         <partial name="_ValidationSummary" />
         <form method="post" asp-page-handler="Connect" class="stack">
+            @if (Model.IsAdmin)
+            {
+                <div class="field" style="max-width:420px">
+                    <label for="import-into">Import into</label>
+                    <select id="import-into" name="user">
+                        @foreach (var u in Model.Users)
+                        {
+                            <option value="@u.Id" selected="@(u.Id == Model.ImportInto)">@u.DisplayName (@u.Username)@(u.Id == Model.CurrentUserIdValue ? " – you" : "")</option>
+                        }
+                    </select>
+                    <span class="hint">As an administrator you can import into any account, including from servers on your local network.
+                        The user sees the import in their own list and can re-run it against the same server.</span>
+                </div>
+            }
             <div class="field">
                 <label asp-for="RemoteUrl"></label>
                 <input asp-for="RemoteUrl" placeholder="https://dav.example.com/ or https://example.com/baikal/dav.php/" autofocus />
@@ -54,12 +68,13 @@
         <div class="card">
             <h2>Previous imports</h2>
             <table>
-                <thead><tr><th>Server</th><th>Status</th><th>Last run</th><th></th></tr></thead>
+                <thead><tr><th>Server</th>@if (Model.IsAdmin) { <th>Account</th> }<th>Status</th><th>Last run</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var s in Model.Sources)
                 {
                     <tr>
                         <td>@s.ServerUrl <div class="small muted">@s.Username</div></td>
+                        @if (Model.IsAdmin) { <td>@Model.UserLabel(s.UserId)</td> }
                         <td><span class="badge @(s.Status == MigrationStatus.Completed ? "accent" : "")">@MigrateModel.StatusLabel(s.Status)</span></td>
                         <td class="muted">@(s.LastRunUtc?.ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
                         <td class="actions"><a class="btn small" asp-page="Migrate" asp-route-id="@s.Id">Open</a></td>
@@ -77,6 +92,14 @@ else
         <h2>@s.ServerUrl</h2>
         <p class="muted">Signed in as <b>@s.Username</b> · status <span class="badge @(s.Status == MigrationStatus.Completed ? "accent" : "")">@MigrateModel.StatusLabel(s.Status)</span>
             @if (s.LastRunUtc != null) { <span> · last run @s.LastRunUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC</span> }</p>
+        @if (!Model.IsOwnSource)
+        {
+            <p>Importing into <b>@Model.UserLabel(s.UserId)</b>'s account.</p>
+        }
+        @if (s.CreatedByUserId != null && s.CreatedByUserId != s.UserId)
+        {
+            <p class="small muted">Set up by @(s.CreatedByUserId == Model.CurrentUserIdValue ? "you" : Model.UserLabel(s.CreatedByUserId))@(s.AllowPrivateNetworks ? ", with access to servers on the local network" : "").</p>
+        }
         @if (!string.IsNullOrEmpty(s.Message))
         {
             <p>@s.Message</p>
@@ -105,8 +128,8 @@ else
                             @if (c.LastError != null) { <div class="small" style="color:var(--danger)">@c.LastError</div> }
                         </td>
                         <td>
-                            @if (c.LocalCalendarId != null) { <a asp-page="/Calendars/Edit" asp-route-id="@c.LocalCalendarId">calendar</a> }
-                            else if (c.LocalAddressBookId != null) { <a asp-page="/AddressBooks/Edit" asp-route-id="@c.LocalAddressBookId">address book</a> }
+                            @if (c.LocalCalendarId != null) { if (Model.IsOwnSource) { <a asp-page="/Calendars/Edit" asp-route-id="@c.LocalCalendarId">calendar</a> } else { <span>calendar</span> } }
+                            else if (c.LocalAddressBookId != null) { if (Model.IsOwnSource) { <a asp-page="/AddressBooks/Edit" asp-route-id="@c.LocalAddressBookId">address book</a> } else { <span>address book</span> } }
                             else { <span class="muted">new @(c.Kind == "calendar" ? "calendar" : "address book")</span> }
                         </td>
                         <td>@(c.ItemsImported > 0 ? c.ItemsImported.ToString() : "")</td>

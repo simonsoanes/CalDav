@@ -427,6 +427,12 @@ public class MigrationSource
     /// <summary>Password protected with ASP.NET Core data protection (kept so imports can be re-run).</summary>
     public string? ProtectedPassword { get; set; }
 
+    /// <summary>The account that set this source up (an administrator when importing on behalf of the user).</summary>
+    public int? CreatedByUserId { get; set; }
+
+    /// <summary>Set when an administrator set the source up: the import may reach servers on private networks.</summary>
+    public bool AllowPrivateNetworks { get; set; }
+
     public MigrationStatus Status { get; set; } = MigrationStatus.Ready;
     public string? Message { get; set; }
     public int ItemsTotal { get; set; }

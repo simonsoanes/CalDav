@@ -286,22 +286,45 @@ public sealed class MigrationService(IServiceScopeFactory scopes, IDataProtectio
 
     public bool AllowPrivate(User user) => user.IsAdmin || settings.Current.SubscriptionsAllowPrivateNetworks;
 
-    /// <summary>Connects to the server and records the collections found. Returns the source id.</summary>
-    public async Task<int> ConnectAsync(AppDbContext db, User user, string serverUrl, string username, string password, int? existingId, CancellationToken ct)
+    /// <summary>
+    /// Whether a connection may go to loopback/private addresses. Allowed server-wide by the admin setting, for
+    /// administrators, and for a source an administrator set up as long as it still points at the same server.
+    /// </summary>
+    public static bool PrivateAllowed(bool globalSetting, bool actorIsAdmin, MigrationSource? existing, string serverUrl) =>
+        globalSetting || actorIsAdmin || (existing is { AllowPrivateNetworks: true } && existing.ServerUrl == serverUrl);
+
+    /// <summary>Connects to the server and records the collections found for the signed-in user. Returns the source id.</summary>
+    public Task<int> ConnectAsync(AppDbContext db, User user, string serverUrl, string username, string password, int? existingId, CancellationToken ct) =>
+        ConnectAsync(db, user, user, serverUrl, username, password, existingId, ct);
+
+    /// <summary>
+    /// Connects to the server and records the collections found, importing into <paramref name="target"/>'s account.
+    /// Only administrators may act for another user (enforced by the caller). Returns the source id.
+    /// </summary>
+    public async Task<int> ConnectAsync(AppDbContext db, User actor, User target, string serverUrl, string username, string password,
+        int? existingId, CancellationToken ct)
     {
+        if (actor.Id != target.Id && !actor.IsAdmin) throw new RemoteDavException("Only administrators can import into another account.");
         var server = RemoteDavClient.NormalizeServerUrl(serverUrl);
+        var existing = existingId == null ? null
+            : await db.MigrationSources.Include(s => s.Collections).FirstOrDefaultAsync(s => s.Id == existingId && s.UserId == target.Id, ct);
+        var allowPrivate = PrivateAllowed(settings.Current.SubscriptionsAllowPrivateNetworks, actor.IsAdmin, existing, server.ToString());
+
         List<RemoteCollection> collections;
-        using (var client = new RemoteDavClient(username, password, AllowPrivate(user)))
+        using (var client = new RemoteDavClient(username, password, allowPrivate))
             collections = await client.DiscoverAsync(server, ct);
 
         using var _ = await gate.EnterAsync(ct);
-        var source = existingId == null ? null
-            : await db.MigrationSources.Include(s => s.Collections).FirstOrDefaultAsync(s => s.Id == existingId && s.UserId == user.Id, ct);
+        var source = existing;
         if (source == null)
         {
-            source = new MigrationSource { UserId = user.Id };
+            source = new MigrationSource { UserId = target.Id, CreatedByUserId = actor.Id };
             db.MigrationSources.Add(source);
         }
+        // An administrator's network permission sticks to the source (so the user can re-run it), but only while
+        // it keeps pointing at the server the administrator approved.
+        source.AllowPrivateNetworks = actor.IsAdmin || (source.AllowPrivateNetworks && source.ServerUrl == server.ToString());
+        if (actor.IsAdmin) source.CreatedByUserId = actor.Id;
         source.ServerUrl = server.ToString();
         source.Username = username;
         source.ProtectedPassword = _protector.Protect(password);
@@ -355,7 +378,7 @@ public sealed class MigrationService(IServiceScopeFactory scopes, IDataProtectio
             try { password = _protector.Unprotect(source.ProtectedPassword); }
             catch (System.Security.Cryptography.CryptographicException) { throw new RemoteDavException("The stored password can no longer be read; reconnect to the server."); }
 
-            using var client = new RemoteDavClient(source.Username, password, AllowPrivate(source.User));
+            using var client = new RemoteDavClient(source.Username, password, source.AllowPrivateNetworks || AllowPrivate(source.User));
             var selected = source.Collections.Where(c => c.Selected).ToList();
 
             var listings = new List<(MigrationCollection Row, List<Uri> Hrefs)>();

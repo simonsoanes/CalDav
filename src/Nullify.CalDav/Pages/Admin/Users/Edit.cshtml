@@ -104,6 +104,11 @@
             <form method="post" asp-page-handler="Unlink" asp-route-id="@Model.Id"><button type="submit">Unlink SSO identity</button></form>
         </div>
     }
+    <div class="card">
+        <h2>Import data</h2>
+        <p class="muted">Copy calendars and contacts from another CalDAV/CardDAV server (including one on your local network) into this account.</p>
+        <a class="btn" asp-page="/Migrate" asp-route-user="@Model.Id">Import into this account</a>
+    </div>
     @if (!Model.IsSelf)
     {
         <div class="card">
