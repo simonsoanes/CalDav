@@ -1,0 +1,49 @@
+@page
+@model TrashModel
+@{
+    ViewData["Title"] = "Trash";
+}
+<div class="page-head">
+    <div>
+        <h1>Trash</h1>
+        <p>Deleted calendars, address books, events, tasks, notes and contacts are kept for @Model.RetentionDays days, whichever device deleted them.</p>
+    </div>
+    @if (Model.Items.Count > 0)
+    {
+        <form method="post" asp-page-handler="Empty" onsubmit="return confirm('Permanently delete everything in the trash?')">
+            <button class="danger" type="submit">Empty trash</button>
+        </form>
+    }
+</div>
+
+<div class="card">
+    @if (Model.Items.Count == 0)
+    {
+        <p class="empty">The trash is empty.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Item</th><th>From</th><th>Deleted</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var t in Model.Items)
+            {
+                <tr>
+                    <td>
+                        <b>@(string.IsNullOrEmpty(t.Title) ? "(untitled)" : t.Title)</b>
+                        <div class="small muted">@TrashModel.Label(t.Kind)</div>
+                    </td>
+                    <td class="muted">@(t.Kind is TrashKind.Calendar or TrashKind.AddressBook ? "" : t.CollectionName)</td>
+                    <td class="muted">@t.DeletedUtc.ToString("yyyy-MM-dd HH:mm") UTC</td>
+                    <td class="actions">
+                        <form method="post" asp-page-handler="Restore" asp-route-id="@t.Id"><button class="small primary" type="submit">Restore</button></form>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" onsubmit="return confirm('Delete permanently?')">
+                            <button class="small danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>

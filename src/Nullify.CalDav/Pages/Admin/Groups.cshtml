@@ -1,0 +1,64 @@
+@page
+@model Nullify.CalDav.Pages.Admin.GroupsModel
+@{
+    ViewData["Title"] = "Groups";
+}
+<div class="page-head">
+    <div>
+        <h1>Groups</h1>
+        <p>Share calendars and address books with a whole team at once. Members are added and removed here; shares follow automatically.</p>
+    </div>
+    @if (Model.Editing != null)
+    {
+        <a class="btn" asp-page="Groups" asp-route-id="">New group</a>
+    }
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>All groups</h2>
+        @if (Model.Groups.Count == 0)
+        {
+            <p class="empty">No groups yet.</p>
+        }
+        @foreach (var g in Model.Groups)
+        {
+            <div style="margin:.5rem 0">
+                <a asp-page="Groups" asp-route-id="@g.Id"><b>@g.DisplayName</b></a>
+                <span class="muted small">@g.Members.Count member(s)</span>
+                <div class="small muted">@string.Join(", ", g.Members.Select(m => m.User.DisplayName))</div>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <h2>@(Model.Editing == null ? "New group" : "Edit " + Model.Editing.DisplayName)</h2>
+        <partial name="_ValidationSummary" />
+        <form method="post" asp-page-handler="Save" asp-route-id="@Model.Id" class="stack">
+            <div class="field">
+                <label asp-for="DisplayName"></label>
+                <input asp-for="DisplayName" />
+            </div>
+            <div class="field">
+                <span class="label">Members</span>
+                <div class="stack" style="gap:.3rem;max-height:320px;overflow:auto">
+                    @foreach (var u in Model.Users)
+                    {
+                        <label class="check">
+                            <input type="checkbox" name="Members" value="@u.Id" checked="@Model.Members.Contains(u.Id)" />
+                            @u.DisplayName <span class="muted small">@u.Username</span>
+                        </label>
+                    }
+                </div>
+            </div>
+            <div class="row">
+                <button class="primary" type="submit">Save group</button>
+                @if (Model.Editing != null)
+                {
+                    <button class="danger" type="submit" formaction="?id=@Model.Id&handler=Delete" formnovalidate
+                            onclick="return confirm('Delete this group?')">Delete group</button>
+                }
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,252 @@
+@page
+@model Nullify.CalDav.Pages.Admin.SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+}
+<div class="page-head">
+    <div>
+        <h1>Settings</h1>
+        <p>Server-wide options. Changes apply immediately.</p>
+    </div>
+</div>
+
+<partial name="_ValidationSummary" />
+<form method="post" class="stack">
+    <div class="card">
+        <h2>Client access</h2>
+        <label class="check"><input asp-for="AllowAccountPasswordForDav" /> @Html.DisplayNameFor(m => m.AllowAccountPasswordForDav)</label>
+        <p class="hint small muted">When disabled, devices must use per-device app passwords created on the profile page. Recommended when using single sign-on.</p>
+    </div>
+
+    <div class="card">
+        <h2>Collections and storage</h2>
+        <div class="stack">
+            <div class="row">
+                <div class="field">
+                    <label asp-for="DefaultQuotaMb"></label>
+                    <input asp-for="DefaultQuotaMb" type="number" min="0" />
+                </div>
+                <div class="field">
+                    <label asp-for="TrashRetentionDays"></label>
+                    <input asp-for="TrashRetentionDays" type="number" min="0" max="3650" />
+                </div>
+            </div>
+            <label class="check"><input asp-for="DirectoryEnabled" /> @Html.DisplayNameFor(m => m.DirectoryEnabled)</label>
+            <label class="check"><input asp-for="BirthdaysEnabled" /> @Html.DisplayNameFor(m => m.BirthdaysEnabled)</label>
+            <label class="check"><input asp-for="PublicLinksEnabled" /> @Html.DisplayNameFor(m => m.PublicLinksEnabled)</label>
+            <label class="check"><input asp-for="SubscriptionsEnabled" /> @Html.DisplayNameFor(m => m.SubscriptionsEnabled)</label>
+            <div class="row">
+                <div class="field" style="max-width:320px">
+                    <label asp-for="SubscriptionMinRefreshMinutes"></label>
+                    <input asp-for="SubscriptionMinRefreshMinutes" type="number" min="1" />
+                </div>
+            </div>
+            <label class="check"><input asp-for="SubscriptionsAllowPrivateNetworks" /> @Html.DisplayNameFor(m => m.SubscriptionsAllowPrivateNetworks)</label>
+            <p class="hint small muted">Leave this off unless you need it (e.g. a self-hosted UnifiedPush/ntfy server on your LAN): it stops users making the server fetch internal addresses.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Instant sync (WebDAV-Push)</h2>
+        <label class="check"><input asp-for="PushEnabled" /> @Html.DisplayNameFor(m => m.PushEnabled)</label>
+        <div class="field" style="margin-top:.75rem">
+            <label asp-for="PushContact"></label>
+            <input asp-for="PushContact" placeholder="admin@example.com" />
+            <span class="hint">Sent to push services (VAPID) so they can contact you about problems. Devices need a UnifiedPush distributor (e.g. ntfy) to receive pushes.</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Meeting invitations</h2>
+        <div class="stack">
+            <label class="check"><input asp-for="SchedulingEnabled" /> @Html.DisplayNameFor(m => m.SchedulingEnabled)</label>
+            <p class="hint small muted">When someone saves an event with attendees, invitations, updates and cancellations are delivered straight into other users' calendars,
+                and replies update the organizer's copy. This is what DAVx⁵ and most CalDAV clients expect.</p>
+            <label class="check"><input asp-for="SendInvitationEmails" /> @Html.DisplayNameFor(m => m.SendInvitationEmails)</label>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="InvitationFrom"></label>
+                    <input asp-for="InvitationFrom" type="email" placeholder="calendar@example.com" />
+                    <span class="hint">Messages are sent from this address with Reply-To set to the organizer.</span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="SmtpUsername"></label>
+                    <input asp-for="SmtpUsername" autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label asp-for="SmtpPassword"></label>
+                    <input asp-for="SmtpPassword" autocomplete="new-password" placeholder="@(Model.HasSmtpPassword ? "•••••••• (stored)" : "")" />
+                </div>
+            </div>
+            @if (Model.HasSmtpPassword)
+            {
+                <label class="check"><input asp-for="ClearSmtpPassword" /> @Html.DisplayNameFor(m => m.ClearSmtpPassword)</label>
+            }
+            <p class="hint small muted">The SMTP server, port and security are taken from the mail server settings below.</p>
+            <div class="row">
+                <div class="field" style="max-width:320px">
+                    <label asp-for="TestRecipient"></label>
+                    <input asp-for="TestRecipient" type="email" />
+                </div>
+                <button type="submit" formaction="?handler=TestSmtp" formnovalidate>Send test email</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Public address</h2>
+        <div class="field">
+            <label asp-for="PublicUrl"></label>
+            <input asp-for="PublicUrl" type="url" placeholder="https://dav.example.com" />
+            <span class="hint">The address clients use to reach this server, published in autoconfiguration responses and device profiles.
+                Required when autoconfiguration is served from other host names (autoconfig.example.com, autodiscover.example.com).
+                Currently: <code>@Model.EffectiveBaseUrl</code></span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Mail server</h2>
+        <p class="muted">Used as the default server for IMAP passthrough authentication and published to mail clients through autoconfiguration.</p>
+        <div class="stack">
+            <div class="row">
+                <div class="field">
+                    <label asp-for="MailDomains"></label>
+                    <input asp-for="MailDomains" placeholder="example.com, example.org" />
+                    <span class="hint">Autoconfiguration is only answered for these domains (all if empty).</span>
+                </div>
+                <div class="field">
+                    <label asp-for="MailProviderName"></label>
+                    <input asp-for="MailProviderName" placeholder="Example Mail" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="ImapHost"></label>
+                    <input asp-for="ImapHost" placeholder="imap.example.com" />
+                </div>
+                <div class="field" style="max-width:120px">
+                    <label asp-for="ImapPort"></label>
+                    <input asp-for="ImapPort" type="number" min="1" max="65535" />
+                </div>
+                <div class="field" style="max-width:200px">
+                    <label asp-for="ImapSecurity"></label>
+                    <select asp-for="ImapSecurity">
+                        <option value="Tls">TLS (IMAPS)</option>
+                        <option value="StartTls">STARTTLS</option>
+                        <option value="None">None (insecure)</option>
+                    </select>
+                </div>
+            </div>
+            <label class="check"><input asp-for="ImapAllowInvalidCertificates" /> @Html.DisplayNameFor(m => m.ImapAllowInvalidCertificates)</label>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="SmtpHost"></label>
+                    <input asp-for="SmtpHost" placeholder="smtp.example.com" />
+                </div>
+                <div class="field" style="max-width:120px">
+                    <label asp-for="SmtpPort"></label>
+                    <input asp-for="SmtpPort" type="number" min="1" max="65535" />
+                </div>
+                <div class="field" style="max-width:200px">
+                    <label asp-for="SmtpSecurity"></label>
+                    <select asp-for="SmtpSecurity">
+                        <option value="StartTls">STARTTLS</option>
+                        <option value="Tls">TLS (SMTPS)</option>
+                        <option value="None">None (insecure)</option>
+                    </select>
+                </div>
+            </div>
+            <label class="check"><input asp-for="AutoconfigEnabled" /> @Html.DisplayNameFor(m => m.AutoconfigEnabled)</label>
+            <details>
+                <summary>Published endpoints and DNS records</summary>
+                <ul class="small">
+                    <li>Thunderbird: <code>https://autoconfig.&lt;domain&gt;/mail/config-v1.1.xml</code> and <code>/.well-known/autoconfig/mail/config-v1.1.xml</code> (includes CalDAV and CardDAV)</li>
+                    <li>Outlook: <code>https://autodiscover.&lt;domain&gt;/autodiscover/autodiscover.xml</code> and <code>/autodiscover/autodiscover.json</code></li>
+                    <li>CalDAV/CardDAV discovery: <code>/.well-known/caldav</code>, <code>/.well-known/carddav</code></li>
+                    <li>Apple devices: configuration profile download on each user's profile page</li>
+                </ul>
+                <p class="small muted">Suggested DNS records (replace the host names):</p>
+                <pre class="small mono">autoconfig.example.com.      CNAME dav.example.com.
+autodiscover.example.com.    CNAME dav.example.com.
+_caldavs._tcp.example.com.   SRV 0 1 443 dav.example.com.
+_caldavs._tcp.example.com.   TXT "path=/dav/"
+_carddavs._tcp.example.com.  SRV 0 1 443 dav.example.com.
+_carddavs._tcp.example.com.  TXT "path=/dav/"
+_autodiscover._tcp.example.com. SRV 0 1 443 autodiscover.example.com.</pre>
+            </details>
+            <div><button type="submit" formaction="?handler=TestImap" formnovalidate>Test IMAP connection</button>
+                <span class="hint small muted">Tests the saved settings (connect and TLS only, no login).</span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>SyncML</h2>
+        <label class="check"><input asp-for="SyncMlEnabled" /> @Html.DisplayNameFor(m => m.SyncMlEnabled)</label>
+        <p class="hint small muted">Endpoint: <code>@(Model.EffectiveBaseUrl)/syncml</code> (also <code>/sync</code> and <code>/funambol/ds</code>). Supports SyncML 1.1/1.2 over XML and WBXML with basic authentication.</p>
+    </div>
+
+    <div class="card">
+        <h2>OpenID Connect</h2>
+        <p class="muted">Let users sign in to this management interface with an external identity provider such as Microsoft Entra ID, Keycloak, Authentik, Authelia or Google.
+            Register this redirect URI with your provider: <code>@Model.CallbackUrl</code></p>
+        <div class="stack">
+            <label class="check"><input asp-for="OidcEnabled" /> @Html.DisplayNameFor(m => m.OidcEnabled)</label>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="OidcAuthority"></label>
+                    <input asp-for="OidcAuthority" type="url" placeholder="https://login.example.com/realms/main" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="OidcClientId"></label>
+                    <input asp-for="OidcClientId" autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label asp-for="OidcClientSecret"></label>
+                    <input asp-for="OidcClientSecret" autocomplete="new-password" placeholder="@(Model.HasSecret ? "•••••••• (stored)" : "optional for public clients")" />
+                </div>
+            </div>
+            @if (Model.HasSecret)
+            {
+                <label class="check"><input asp-for="ClearSecret" /> @Html.DisplayNameFor(m => m.ClearSecret)</label>
+            }
+            <div class="row">
+                <div class="field">
+                    <label asp-for="OidcScopes"></label>
+                    <input asp-for="OidcScopes" />
+                </div>
+                <div class="field">
+                    <label asp-for="OidcUsernameClaim"></label>
+                    <input asp-for="OidcUsernameClaim" />
+                    <span class="hint">Used for new usernames; falls back to email.</span>
+                </div>
+                <div class="field">
+                    <label asp-for="OidcButtonLabel"></label>
+                    <input asp-for="OidcButtonLabel" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="OidcAdminClaimType"></label>
+                    <input asp-for="OidcAdminClaimType" placeholder="e.g. groups or roles" />
+                </div>
+                <div class="field">
+                    <label asp-for="OidcAdminClaimValue"></label>
+                    <input asp-for="OidcAdminClaimValue" placeholder="e.g. caldav-admins" />
+                    <span class="hint">When both are set, administrator rights follow this claim on each SSO sign-in.</span>
+                </div>
+            </div>
+            <label class="check"><input asp-for="OidcAutoProvision" /> @Html.DisplayNameFor(m => m.OidcAutoProvision)</label>
+            <label class="check"><input asp-for="OidcLinkByUsername" /> @Html.DisplayNameFor(m => m.OidcLinkByUsername)</label>
+            <label class="check"><input asp-for="OidcRequireHttpsMetadata" /> @Html.DisplayNameFor(m => m.OidcRequireHttpsMetadata)</label>
+            <label class="check"><input asp-for="HideLocalLogin" /> @Html.DisplayNameFor(m => m.HideLocalLogin)</label>
+            <p class="hint small muted">Even when hidden, password sign-in remains available at <code>/account/login?local=true</code> as a recovery path.
+                Single sign-on requires the server to be reached over HTTPS (directly or via a reverse proxy).</p>
+        </div>
+    </div>
+
+    <div><button class="primary" type="submit">Save settings</button></div>
+</form>

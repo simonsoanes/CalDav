@@ -1,0 +1,38 @@
+@page
+@model Nullify.CalDav.Pages.Admin.Users.IndexModel
+@{
+    ViewData["Title"] = "Users";
+}
+<div class="page-head">
+    <div>
+        <h1>Users</h1>
+        <p>@Model.Users.Count account(s)</p>
+    </div>
+    <a class="btn primary" asp-page="Edit">New user</a>
+</div>
+
+<div class="card">
+    <table>
+        <thead><tr><th>User</th><th>Email</th><th>Collections</th><th>Last sign-in</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var u in Model.Users)
+        {
+            <tr>
+                <td>
+                    <a asp-page="Edit" asp-route-id="@u.Id"><b>@u.DisplayName</b></a> <span class="muted small">@u.Username</span>
+                    <div>
+                        @if (u.IsAdmin) { <span class="badge accent">admin</span> }
+                        @if (!u.IsEnabled) { <span class="badge">disabled</span> }
+                        @if (u.Sso) { <span class="badge">SSO</span> }
+                        @if (!u.HasPassword) { <span class="badge">no password</span> }
+                    </div>
+                </td>
+                <td class="muted">@u.Email</td>
+                <td class="muted">@u.Calendars cal · @u.AddressBooks book</td>
+                <td class="muted">@(u.LastLogin?.ToString("yyyy-MM-dd HH:mm") ?? "Never")</td>
+                <td class="actions"><a class="btn small" asp-page="Edit" asp-route-id="@u.Id">Edit</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

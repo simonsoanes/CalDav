@@ -1,0 +1,77 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Overview";
+}
+<div class="page-head">
+    <div>
+        <h1>Hello, @Model.Me.DisplayName</h1>
+        <p>Connect your devices using the details below.</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Connection details</h2>
+    <dl class="kv">
+        <dt>Server URL</dt>
+        <dd><code>@Model.DavUrl</code></dd>
+        <dt>Username</dt>
+        <dd><code>@Model.Me.Username</code></dd>
+        <dt>Password</dt>
+        <dd>Your account password or an <a asp-page="/Account/Profile">app password</a> (recommended)</dd>
+        <dt>Principal URL</dt>
+        <dd><code>@Model.PrincipalUrl</code></dd>
+        <dt>SyncML URL</dt>
+        <dd><code>@(Model.ServerUrl)/syncml</code> <span class="muted small">databases: contacts, calendar, tasks, notes</span></dd>
+    </dl>
+    <details style="margin-top:1rem">
+        <summary>Client setup tips</summary>
+        <ul class="small">
+            <li><b>Apple Calendar, Reminders &amp; Contacts (iOS/macOS):</b> add a "CalDAV" and a "CardDAV" account using the server host name, your username and password. Discovery via <code>/.well-known/caldav</code> is supported.</li>
+            <li><b>DAVx⁵ (Android):</b> choose "Login with URL and user name" and enter the server URL above. Tasks (VTODO) and journals/notes (VJOURNAL) sync with jtx Board, OpenTasks or Tasks.org.</li>
+            <li><b>Thunderbird:</b> add a new calendar "On the network" with the server URL; address books via the CardDAV option.</li>
+            <li><b>Evolution / GNOME, KOrganizer and others:</b> use the individual collection URLs listed below.</li>
+        </ul>
+    </details>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <div class="page-head" style="margin-bottom:.5rem">
+            <h2 style="margin:0">Calendars</h2>
+            <a class="btn small" asp-page="/Calendars/Index">Manage</a>
+        </div>
+        @if (Model.Calendars.Count == 0)
+        {
+            <p class="empty">No calendars yet.</p>
+        }
+        @foreach (var c in Model.Calendars)
+        {
+            <div style="margin:.6rem 0">
+                <div><span class="swatch" style="background:@Names.SafeColor(c.Color)"></span><b>@c.Name</b>
+                    @if (c.Shared) { <span class="badge accent">shared</span> }
+                    <span class="muted small">@c.Count item(s)</span></div>
+                <div class="small"><code>@c.Url</code></div>
+            </div>
+        }
+    </div>
+    <div class="card">
+        <div class="page-head" style="margin-bottom:.5rem">
+            <h2 style="margin:0">Address books</h2>
+            <a class="btn small" asp-page="/AddressBooks/Index">Manage</a>
+        </div>
+        @if (Model.AddressBooks.Count == 0)
+        {
+            <p class="empty">No address books yet.</p>
+        }
+        @foreach (var b in Model.AddressBooks)
+        {
+            <div style="margin:.6rem 0">
+                <div><b>@b.Name</b>
+                    @if (b.Shared) { <span class="badge accent">shared</span> }
+                    <span class="muted small">@b.Count contact(s)</span></div>
+                <div class="small"><code>@b.Url</code></div>
+            </div>
+        }
+    </div>
+</div>

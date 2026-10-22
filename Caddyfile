@@ -1,0 +1,25 @@
+# Caddy reverse proxy for Nullify.CalDav.
+# Host names come from the environment (see docker-compose.yml / .env).
+
+{$DAV_HOST} {
+	encode zstd gzip
+	reverse_proxy caldav:8080
+}
+
+# Mail client autoconfiguration hosts: only the metadata endpoints are exposed here.
+{$AUTOCONFIG_HOST}, {$AUTODISCOVER_HOST} {
+	@autoconfig path_regexp autoconfig (?i)^/(mail/config-v1\.1\.xml|\.well-known/autoconfig/|autodiscover/)
+	handle @autoconfig {
+		reverse_proxy caldav:8080
+	}
+	handle {
+		respond 404
+	}
+}
+
+# If your apex domain (example.com) is served by this Caddy instance, add service discovery redirects there:
+# example.com {
+# 	redir /.well-known/caldav https://{$DAV_HOST}/.well-known/caldav 301
+# 	redir /.well-known/carddav https://{$DAV_HOST}/.well-known/carddav 301
+# 	redir /.well-known/autoconfig/* https://{$DAV_HOST}{uri} 302
+# }

@@ -1,0 +1,113 @@
+@page
+@model Nullify.CalDav.Pages.Calendars.IndexModel
+@{
+    ViewData["Title"] = "Calendars";
+}
+<div class="page-head">
+    <div>
+        <h1>Calendars</h1>
+        <p>Calendars hold events, tasks (to-dos) and notes (journal entries).</p>
+    </div>
+    <div class="row">
+        @if (Model.Settings.SubscriptionsEnabled)
+        {
+            <a class="btn" asp-page="Subscribe">Subscribe to a calendar</a>
+        }
+        <a class="btn primary" asp-page="Edit">New calendar</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>My calendars</h2>
+    @if (Model.Owned.Count == 0)
+    {
+        <p class="empty">You have no calendars yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Name</th><th>Content</th><th>Items</th><th>Sharing</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var c in Model.Owned)
+            {
+                <tr>
+                    <td>
+                        <span class="swatch" style="background:@Names.SafeColor(c.Color)"></span><a asp-page="Edit" asp-route-id="@c.Id">@c.Name</a>
+                        @if (c.Kind == CalendarKind.Subscription)
+                        {
+                            <span class="badge">subscription</span>
+                            <div class="small muted">@c.SubscriptionUrl
+                                @if (c.Error != null) { <span class="badge" style="color:var(--danger)">error</span> }
+                                else if (c.LastFetch != null) { <span>· updated @c.LastFetch.Value.ToString("yyyy-MM-dd HH:mm") UTC</span> }
+                            </div>
+                        }
+                        @if (c.Kind == CalendarKind.Birthdays) { <span class="badge">generated</span> }
+                    </td>
+                    <td class="muted">@Nullify.CalDav.Pages.Calendars.IndexModel.Describe(c.Components)</td>
+                    <td>@c.Count</td>
+                    <td>
+                        @(c.ShareCount == 0 ? "" : c.ShareCount + " share(s)")
+                        @if (c.Public) { <span class="badge accent">public link</span> }
+                    </td>
+                    <td class="actions"><a class="btn small" asp-page="Edit" asp-route-id="@c.Id">Edit</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="card">
+    <h2>Shared with me</h2>
+    @if (Model.Shared.Count == 0)
+    {
+        <p class="empty">Nobody has shared a calendar with you.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Name</th><th>Owner</th><th>Content</th><th>Access</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Shared)
+            {
+                <tr>
+                    <td><span class="swatch" style="background:@Names.SafeColor(s.Color)"></span>@s.Name
+                        @if (s.Group != null) { <span class="badge">via @s.Group</span> }</td>
+                    <td>@s.Owner</td>
+                    <td class="muted">@Nullify.CalDav.Pages.Calendars.IndexModel.Describe(s.Components)</td>
+                    <td><span class="badge @(s.Access == ShareAccess.ReadWrite ? "accent" : "")">@(s.Access == ShareAccess.ReadWrite ? "Read & write" : "Read only")</span></td>
+                    <td class="actions">
+                        @if (s.Group == null)
+                        {
+                            <form method="post" asp-page-handler="Leave" asp-route-shareId="@s.ShareId" onsubmit="return confirm('Remove this shared calendar from your account?')">
+                                <button class="small danger" type="submit">Remove</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@if (Model.Delegated.Count > 0)
+{
+    <div class="card">
+        <h2>Delegated to me</h2>
+        <p class="muted">These people let you manage their calendars. DAVx⁵ and Apple Calendar show them automatically after a refresh.</p>
+        <table>
+            <thead><tr><th>Person</th><th>Calendars</th><th>Access</th></tr></thead>
+            <tbody>
+            @foreach (var d in Model.Delegated)
+            {
+                <tr>
+                    <td>@d.Owner <span class="muted small">@d.Username</span></td>
+                    <td>@d.Calendars</td>
+                    <td><span class="badge @(d.CanWrite ? "accent" : "")">@(d.CanWrite ? "Read & write" : "Read only")</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

@@ -1,0 +1,143 @@
+@page
+@model Nullify.CalDav.Pages.AddressBooks.EditModel
+@{
+    var isNew = Model.Book == null;
+    ViewData["Title"] = isNew ? "New address book" : Model.Book!.DisplayName;
+}
+<div class="page-head">
+    <div>
+        <h1>@(isNew ? "New address book" : Model.Book!.DisplayName)</h1>
+        @if (!isNew)
+        {
+            <p>@Model.CardCount contact(s) · <code>@Model.CollectionUrl</code></p>
+        }
+    </div>
+    <a class="btn" asp-page="Index">Back</a>
+</div>
+
+<div class="card">
+    <h2>Settings</h2>
+    <partial name="_ValidationSummary" />
+    <form method="post" asp-page-handler="Save" asp-route-id="@Model.Id" class="stack">
+        <div class="field">
+            <label asp-for="DisplayName"></label>
+            <input asp-for="DisplayName" autofocus="@(isNew)" />
+        </div>
+        <div class="field">
+            <label asp-for="Description"></label>
+            <textarea asp-for="Description" rows="2"></textarea>
+        </div>
+        @if (isNew)
+        {
+            <div class="field">
+                <label asp-for="Uri"></label>
+                <input asp-for="Uri" placeholder="generated from the name" />
+                <span class="hint">The last part of the address book URL. Optional.</span>
+            </div>
+        }
+        <div><button class="primary" type="submit">@(isNew ? "Create address book" : "Save changes")</button></div>
+    </form>
+</div>
+
+@if (!isNew)
+{
+    <div class="card">
+        <h2>Sharing</h2>
+        <p class="muted">Shared address books appear automatically in the other user's CardDAV clients.</p>
+        @if (Model.Shares.Count > 0)
+        {
+            <table>
+                <thead><tr><th>User</th><th>Access</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var s in Model.Shares)
+                {
+                    <tr>
+                        <td>
+                            @if (s.Group != null) { <span class="badge">group</span> @s.Group.DisplayName }
+                            else { @s.Sharee!.DisplayName <span class="muted small">@s.Sharee.Username</span> }
+                        </td>
+                        <td>
+                            <form method="post" asp-page-handler="Access" asp-route-id="@Model.Id" asp-route-shareId="@s.Id">
+                                <select name="access" onchange="this.form.submit()">
+                                    <option value="Read" selected="@(s.Access == ShareAccess.Read)">Read only</option>
+                                    <option value="ReadWrite" selected="@(s.Access == ShareAccess.ReadWrite)">Read &amp; write</option>
+                                </select>
+                            </form>
+                        </td>
+                        <td class="actions">
+                            <form method="post" asp-page-handler="Unshare" asp-route-id="@Model.Id" asp-route-shareId="@s.Id">
+                                <button class="small danger" type="submit">Stop sharing</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+        @if (Model.OtherUsers.Count > 0 || Model.Groups.Count > 0)
+        {
+            <form method="post" asp-page-handler="Share" asp-route-id="@Model.Id" class="row" style="margin-top:1rem">
+                <div class="field">
+                    <label asp-for="ShareWith"></label>
+                    <select asp-for="ShareWith">
+                        @if (Model.Groups.Count > 0)
+                        {
+                            <optgroup label="Groups">
+                                @foreach (var g in Model.Groups) { <option value="group:@g.Name">@g.DisplayName</option> }
+                            </optgroup>
+                        }
+                        <optgroup label="People">
+                            @foreach (var u in Model.OtherUsers) { <option value="user:@u.Username">@u.DisplayName (@u.Username)</option> }
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="field">
+                    <label asp-for="ShareAccess">Access</label>
+                    <select asp-for="ShareAccess">
+                        <option value="Read">Read only</option>
+                        <option value="ReadWrite">Read &amp; write</option>
+                    </select>
+                </div>
+                <button class="primary" type="submit">Share</button>
+            </form>
+        }
+        else if (Model.Shares.Count == 0)
+        {
+            <p class="empty">There are no other users to share with.</p>
+        }
+    </div>
+
+    <div class="grid">
+        @if (!Model.IsDirectory)
+        {
+        <div class="card">
+            <h2>Import</h2>
+            <p class="muted">Upload a vCard (.vcf) file containing one or more contacts. Contacts with an existing UID are updated.</p>
+            <form method="post" asp-page-handler="Import" asp-route-id="@Model.Id" enctype="multipart/form-data" class="row">
+                <div class="field"><input type="file" name="file" accept=".vcf,text/vcard" /></div>
+                <button type="submit">Import</button>
+            </form>
+        </div>
+        }
+        <div class="card">
+            <h2>Export</h2>
+            <p class="muted">Download all contacts as a single .vcf file.</p>
+            <a class="btn" asp-page-handler="Export" asp-route-id="@Model.Id">Download .vcf</a>
+        </div>
+    </div>
+
+    @if (Model.IsDirectory)
+    {
+        <div class="alert ok" style="margin-top:1.25rem">This is the server directory: it lists everyone on this server, is maintained automatically and is read-only on your devices.</div>
+    }
+    else
+    {
+    <div class="card" style="margin-top:1.25rem">
+        <h2>Delete address book</h2>
+        <p class="muted">Moves this address book and its @Model.CardCount contact(s) to the trash, from where it can be restored. It disappears for everyone it is shared with.</p>
+        <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Id" onsubmit="return confirm('Move this address book to the trash?')">
+            <button class="danger" type="submit">Delete address book</button>
+        </form>
+    </div>
+    }
+}

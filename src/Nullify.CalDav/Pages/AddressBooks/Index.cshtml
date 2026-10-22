@@ -1,0 +1,68 @@
+@page
+@model Nullify.CalDav.Pages.AddressBooks.IndexModel
+@{
+    ViewData["Title"] = "Address books";
+}
+<div class="page-head">
+    <div>
+        <h1>Address books</h1>
+        <p>Contacts are synchronised with CardDAV clients.</p>
+    </div>
+    <a class="btn primary" asp-page="Edit">New address book</a>
+</div>
+
+<div class="card">
+    <h2>My address books</h2>
+    @if (Model.Owned.Count == 0)
+    {
+        <p class="empty">You have no address books yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Name</th><th>Contacts</th><th>Shared with</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var b in Model.Owned)
+            {
+                <tr>
+                    <td><a asp-page="Edit" asp-route-id="@b.Id">@b.Name</a>
+                        @if (!string.IsNullOrEmpty(b.Description)) { <div class="small muted">@b.Description</div> }</td>
+                    <td>@b.Count</td>
+                    <td>@(b.ShareCount == 0 ? "-" : b.ShareCount + " user(s)")</td>
+                    <td class="actions"><a class="btn small" asp-page="Edit" asp-route-id="@b.Id">Edit</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="card">
+    <h2>Shared with me</h2>
+    @if (Model.Shared.Count == 0)
+    {
+        <p class="empty">Nobody has shared an address book with you.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Name</th><th>Owner</th><th>Contacts</th><th>Access</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Shared)
+            {
+                <tr>
+                    <td>@s.Name</td>
+                    <td>@s.Owner</td>
+                    <td>@s.Count</td>
+                    <td><span class="badge @(s.Access == ShareAccess.ReadWrite ? "accent" : "")">@(s.Access == ShareAccess.ReadWrite ? "Read & write" : "Read only")</span></td>
+                    <td class="actions">
+                        <form method="post" asp-page-handler="Leave" asp-route-shareId="@s.ShareId" onsubmit="return confirm('Remove this shared address book from your account?')">
+                            <button class="small danger" type="submit">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>

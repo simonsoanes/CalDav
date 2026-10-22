@@ -1,0 +1,130 @@
+@page
+@model Nullify.CalDav.Pages.Admin.Users.EditModel
+@{
+    var isNew = Model.Target == null;
+    ViewData["Title"] = isNew ? "New user" : Model.Target!.Username;
+}
+<div class="page-head">
+    <div>
+        <h1>@(isNew ? "New user" : Model.Target!.DisplayName)</h1>
+        @if (!isNew)
+        {
+            <p>Created @Model.Target!.CreatedUtc.ToString("yyyy-MM-dd") · last sign-in @(Model.Target.LastLoginUtc?.ToString("yyyy-MM-dd HH:mm") ?? "never")</p>
+        }
+    </div>
+    <a class="btn" asp-page="Index">Back</a>
+</div>
+
+<div class="card">
+    <partial name="_ValidationSummary" />
+    <form method="post" asp-page-handler="Save" asp-route-id="@Model.Id" class="stack">
+        <div class="row">
+            <div class="field">
+                <label asp-for="Username"></label>
+                @if (isNew)
+                {
+                    <input asp-for="Username" autocomplete="off" autofocus />
+                }
+                else
+                {
+                    <input asp-for="Username" disabled />
+                }
+            </div>
+            <div class="field">
+                <label asp-for="DisplayName"></label>
+                <input asp-for="DisplayName" />
+            </div>
+        </div>
+        <div class="field">
+            <label asp-for="Email"></label>
+            <input asp-for="Email" type="email" />
+        </div>
+        <div class="field">
+            <label asp-for="Password">@(isNew ? "Password" : "Set new password")</label>
+            <input asp-for="Password" autocomplete="new-password" />
+            <span class="hint">@(isNew ? "Leave empty for SSO-only accounts." : "Leave empty to keep the current password.")</span>
+        </div>
+        <div class="field">
+            <label asp-for="AuthSource"></label>
+            <select asp-for="AuthSource">
+                <option value="Local">Local password (stored on this server)</option>
+                <option value="Imap">IMAP passthrough (log in to the mail server)</option>
+            </select>
+            <span class="hint">With IMAP passthrough the account password is checked by attempting an IMAP login; the local password is not used. App passwords and SSO keep working.</span>
+        </div>
+        <fieldset class="card" style="margin:0;box-shadow:none" id="imap-fields">
+            <div class="row">
+                <div class="field">
+                    <label asp-for="ImapLogin"></label>
+                    <input asp-for="ImapLogin" placeholder="@(string.IsNullOrEmpty(Model.Email) ? Model.Username : Model.Email)" autocomplete="off" />
+                    <span class="hint">Defaults to the email address, then the username.</span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="ImapHost"></label>
+                    <input asp-for="ImapHost" placeholder="@(Model.Settings.ImapConfigured ? Model.Settings.ImapHost + " (server default)" : "imap.example.com")" />
+                </div>
+                <div class="field" style="max-width:120px">
+                    <label asp-for="ImapPort"></label>
+                    <input asp-for="ImapPort" type="number" min="1" max="65535" placeholder="993" />
+                </div>
+                <div class="field" style="max-width:200px">
+                    <label asp-for="ImapSecurity"></label>
+                    <select asp-for="ImapSecurity">
+                        <option value="">Default (TLS)</option>
+                        <option value="Tls">TLS (IMAPS)</option>
+                        <option value="StartTls">STARTTLS</option>
+                        <option value="None">None (insecure)</option>
+                    </select>
+                </div>
+            </div>
+            <span class="hint">Leave the server empty to use the server-wide mail settings.</span>
+        </fieldset>
+        <div class="field" style="max-width:260px">
+            <label asp-for="QuotaMb"></label>
+            <input asp-for="QuotaMb" type="number" min="0" placeholder="@(Model.Settings.DefaultQuotaMb > 0 ? Model.Settings.DefaultQuotaMb + " (default)" : "unlimited (default)")" />
+            <span class="hint">Empty uses the server default; 0 means unlimited.</span>
+        </div>
+        <div class="checks">
+            <label class="check"><input asp-for="IsEnabled" /> Enabled</label>
+            <label class="check"><input asp-for="IsAdmin" /> Administrator</label>
+        </div>
+        <div><button class="primary" type="submit">@(isNew ? "Create user" : "Save changes")</button></div>
+    </form>
+</div>
+
+@if (!isNew)
+{
+    @if (Model.Target!.ExternalSubject != null)
+    {
+        <div class="card">
+            <h2>Single sign-on</h2>
+            <p class="muted">Linked identity: <code>@Model.Target.ExternalSubject</code></p>
+            <form method="post" asp-page-handler="Unlink" asp-route-id="@Model.Id"><button type="submit">Unlink SSO identity</button></form>
+        </div>
+    }
+    @if (!Model.IsSelf)
+    {
+        <div class="card">
+            <h2>Delete user</h2>
+            <p class="muted">Deletes the account together with all of its calendars, address books and shares.</p>
+            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Id" onsubmit="return confirm('Delete this user and all their data? This cannot be undone.')">
+                <button class="danger" type="submit">Delete user</button>
+            </form>
+        </div>
+    }
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var select = document.getElementById('AuthSource');
+            var fields = document.getElementById('imap-fields');
+            if (!select || !fields) return;
+            function update() { fields.style.display = select.value === 'Imap' ? '' : 'none'; }
+            select.addEventListener('change', update);
+            update();
+        })();
+    </script>
+}

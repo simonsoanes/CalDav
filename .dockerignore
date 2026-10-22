@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/data/
+**/TestResults/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.git/
+.gitea/
+.vs/
+.vscode/
+.idea/
+.env
+*.md
+!README.md

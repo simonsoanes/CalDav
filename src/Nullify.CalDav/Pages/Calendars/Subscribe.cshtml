@@ -1,0 +1,48 @@
+@page
+@model Nullify.CalDav.Pages.Calendars.SubscribeModel
+@{
+    ViewData["Title"] = "Subscribe to a calendar";
+}
+<div class="page-head">
+    <div>
+        <h1>Subscribe to a calendar</h1>
+        <p>Add a read-only calendar from an iCalendar feed (holidays, sports fixtures, school terms, another service's public link).
+            The server downloads it regularly and your devices sync it like any other calendar.</p>
+    </div>
+    <a class="btn" asp-page="Index">Back</a>
+</div>
+
+<div class="card">
+    <partial name="_ValidationSummary" />
+    <form method="post" class="stack">
+        <div class="field">
+            <label asp-for="FeedUrl"></label>
+            <input asp-for="FeedUrl" placeholder="webcal://example.com/holidays.ics" autofocus />
+        </div>
+        <div class="row">
+            <div class="field">
+                <label asp-for="DisplayName"></label>
+                <input asp-for="DisplayName" placeholder="taken from the address if empty" />
+            </div>
+            <div class="field" style="flex:0">
+                <label asp-for="Color"></label>
+                <input asp-for="Color" type="color" />
+            </div>
+            <div class="field" style="max-width:220px">
+                <label asp-for="RefreshMinutes"></label>
+                <select asp-for="RefreshMinutes">
+                    <option value="15">15 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="360">6 hours</option>
+                    <option value="1440">1 day</option>
+                    <option value="10080">1 week</option>
+                </select>
+            </div>
+        </div>
+        @if (!Model.Settings.SubscriptionsAllowPrivateNetworks)
+        {
+            <p class="hint small muted">Only public internet addresses can be subscribed to.</p>
+        }
+        <div><button class="primary" type="submit">Subscribe</button></div>
+    </form>
+</div>

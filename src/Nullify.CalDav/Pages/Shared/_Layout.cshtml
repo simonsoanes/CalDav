@@ -1,0 +1,59 @@
+@{
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var isAdmin = User.IsInRole(AppClaims.AdminRole);
+    var path = Context.Request.Path.Value ?? "/";
+    string Active(string prefix) => (prefix == "/" ? path == "/" : path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
+    var pm = ViewData.Model as AppPageModel;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")Nullify.CalDav</title>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="~/">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15" r="2" fill="currentColor"/></svg>
+        <span>Nullify<b>.CalDav</b></span>
+    </a>
+    @if (signedIn)
+    {
+        <nav class="mainnav">
+            <a class="@Active("/")" asp-page="/Index">Overview</a>
+            <a class="@Active("/calendars")" asp-page="/Calendars/Index">Calendars</a>
+            <a class="@Active("/addressbooks")" asp-page="/AddressBooks/Index">Address books</a>
+            <a class="@Active("/migrate")" asp-page="/Migrate">Import</a>
+            <a class="@Active("/trash")" asp-page="/Trash">Trash</a>
+            @if (isAdmin)
+            {
+                <a class="@Active("/admin/users")" asp-page="/Admin/Users/Index">Users</a>
+                <a class="@Active("/admin/groups")" asp-page="/Admin/Groups">Groups</a>
+                <a class="@Active("/admin/settings")" asp-page="/Admin/Settings">Settings</a>
+            }
+        </nav>
+        <div class="usermenu">
+            <a class="@Active("/account/profile")" asp-page="/Account/Profile">@(User.FindFirst("display_name")?.Value ?? User.Identity!.Name)</a>
+            <form method="post" asp-page="/Account/Logout"><button class="link" type="submit">Sign out</button></form>
+        </div>
+    }
+</header>
+<main class="container">
+    @if (!string.IsNullOrEmpty(pm?.StatusMessage))
+    {
+        <div class="alert ok">@pm.StatusMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(pm?.ErrorMessage))
+    {
+        <div class="alert err">@pm.ErrorMessage</div>
+    }
+    @RenderBody()
+</main>
+<footer class="footer">Nullify.CalDav · CalDAV &amp; CardDAV server</footer>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

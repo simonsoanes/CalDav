@@ -1,0 +1,141 @@
+@page
+@model MigrateModel
+@{
+    ViewData["Title"] = "Import from another server";
+}
+@if (Model.IsBusy)
+{
+    <meta http-equiv="refresh" content="3" />
+}
+<div class="page-head">
+    <div>
+        <h1>Import from another server</h1>
+        <p>Copy your calendars (events, tasks, notes) and contacts from an existing CalDAV/CardDAV server such as Baïkal, Nextcloud,
+            Radicale, Fastmail, mailbox.org or iCloud. Your old server is only read, never changed.</p>
+    </div>
+    @if (Model.Source != null)
+    {
+        <a class="btn" asp-page="Migrate" asp-route-id="">New import</a>
+    }
+</div>
+
+@if (Model.Source == null)
+{
+    <div class="card">
+        <h2>Connect to your old server</h2>
+        <partial name="_ValidationSummary" />
+        <form method="post" asp-page-handler="Connect" class="stack">
+            <div class="field">
+                <label asp-for="RemoteUrl"></label>
+                <input asp-for="RemoteUrl" placeholder="https://dav.example.com/ or https://example.com/baikal/dav.php/" autofocus />
+                <span class="hint">The address you use in your phone or calendar app. For iCloud use <code>https://caldav.icloud.com/</code> and
+                    <code>https://contacts.icloud.com/</code> with an app-specific password (import each separately).</span>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label asp-for="Username"></label>
+                    <input asp-for="Username" autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label asp-for="Password"></label>
+                    <input asp-for="Password" autocomplete="new-password" />
+                </div>
+            </div>
+            @if (!Model.AllowPrivate)
+            {
+                <p class="hint small muted">Only servers on the public internet can be reached. Ask an administrator to import from a server on your local network.</p>
+            }
+            <div><button class="primary" type="submit">Connect</button></div>
+        </form>
+    </div>
+
+    @if (Model.Sources.Count > 0)
+    {
+        <div class="card">
+            <h2>Previous imports</h2>
+            <table>
+                <thead><tr><th>Server</th><th>Status</th><th>Last run</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var s in Model.Sources)
+                {
+                    <tr>
+                        <td>@s.ServerUrl <div class="small muted">@s.Username</div></td>
+                        <td><span class="badge @(s.Status == MigrationStatus.Completed ? "accent" : "")">@MigrateModel.StatusLabel(s.Status)</span></td>
+                        <td class="muted">@(s.LastRunUtc?.ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
+                        <td class="actions"><a class="btn small" asp-page="Migrate" asp-route-id="@s.Id">Open</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else
+{
+    var s = Model.Source;
+    <div class="card">
+        <h2>@s.ServerUrl</h2>
+        <p class="muted">Signed in as <b>@s.Username</b> · status <span class="badge @(s.Status == MigrationStatus.Completed ? "accent" : "")">@MigrateModel.StatusLabel(s.Status)</span>
+            @if (s.LastRunUtc != null) { <span> · last run @s.LastRunUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC</span> }</p>
+        @if (!string.IsNullOrEmpty(s.Message))
+        {
+            <p>@s.Message</p>
+        }
+        @if (Model.IsBusy && s.ItemsTotal > 0)
+        {
+            <div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin:.5rem 0 1rem">
+                <div style="height:100%;width:@(Math.Min(100, (s.ItemsDone + s.ItemsFailed) * 100 / Math.Max(1, s.ItemsTotal)))%;background:var(--accent)"></div>
+            </div>
+            <p class="small muted">@(s.ItemsDone + s.ItemsFailed) of @s.ItemsTotal items processed</p>
+        }
+
+        <form method="post" asp-page-handler="Start" asp-route-id="@s.Id" class="stack">
+            <table>
+                <thead><tr><th></th><th>Collection</th><th>Imported into</th><th>Items</th></tr></thead>
+                <tbody>
+                @foreach (var c in s.Collections.OrderBy(c => c.Kind).ThenBy(c => c.DisplayName))
+                {
+                    <tr>
+                        <td style="width:2rem"><input type="checkbox" name="Selected" value="@c.Id" checked="@c.Selected" disabled="@Model.IsBusy" /></td>
+                        <td>
+                            @if (c.Kind == "calendar") { <span class="swatch" style="background:@Names.SafeColor(c.Color?.Length >= 7 ? c.Color[..7] : c.Color)"></span> }
+                            <b>@c.DisplayName</b> <span class="badge">@(c.Kind == "calendar" ? "calendar" : "address book")</span>
+                            @if (c.ReadOnly) { <span class="badge">read-only</span> }
+                            <div class="small muted">@c.RemoteUrl</div>
+                            @if (c.LastError != null) { <div class="small" style="color:var(--danger)">@c.LastError</div> }
+                        </td>
+                        <td>
+                            @if (c.LocalCalendarId != null) { <a asp-page="/Calendars/Edit" asp-route-id="@c.LocalCalendarId">calendar</a> }
+                            else if (c.LocalAddressBookId != null) { <a asp-page="/AddressBooks/Edit" asp-route-id="@c.LocalAddressBookId">address book</a> }
+                            else { <span class="muted">new @(c.Kind == "calendar" ? "calendar" : "address book")</span> }
+                        </td>
+                        <td>@(c.ItemsImported > 0 ? c.ItemsImported.ToString() : "")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="row">
+                <button class="primary" type="submit" disabled="@Model.IsBusy">@(s.LastRunUtc == null ? "Import selected" : "Import again")</button>
+                <button class="danger" type="submit" formaction="?id=@s.Id&handler=Delete" disabled="@Model.IsBusy"
+                        onclick="return confirm('Remove this import source and its stored password? Imported data is kept.')">Remove source</button>
+            </div>
+            <p class="hint small muted">Running the import again fetches changes made on the old server since the last run: new items are added and changed
+                items updated (matched by UID). Nothing is deleted here, so you can keep using the old server until you switch your devices over.</p>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Reconnect</h2>
+        <p class="muted">Changed your password, or added calendars on the old server? Reconnect to update the list.</p>
+        <partial name="_ValidationSummary" />
+        <form method="post" asp-page-handler="Connect" asp-route-id="@s.Id" class="row">
+            <input type="hidden" asp-for="RemoteUrl" />
+            <input type="hidden" asp-for="Username" />
+            <div class="field">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" autocomplete="new-password" />
+            </div>
+            <button type="submit" disabled="@Model.IsBusy">Reconnect</button>
+        </form>
+    </div>
+}

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Nullify.CalDav/Nullify.CalDav.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Nullify.CalDav.Tests/Nullify.CalDav.Tests.csproj" />
+  </Folder>
+</Solution>

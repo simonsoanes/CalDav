@@ -1,0 +1,221 @@
+@page
+@model Nullify.CalDav.Pages.Calendars.EditModel
+@{
+    var isNew = Model.Calendar == null;
+    var kind = Model.Calendar?.Kind ?? CalendarKind.Normal;
+    ViewData["Title"] = isNew ? "New calendar" : Model.Calendar!.DisplayName;
+}
+<div class="page-head">
+    <div>
+        <h1>@(isNew ? "New calendar" : Model.Calendar!.DisplayName)</h1>
+        @if (!isNew)
+        {
+            <p>@Model.ObjectCount item(s) · <code>@Model.CollectionUrl</code></p>
+        }
+    </div>
+    <a class="btn" asp-page="Index">Back</a>
+</div>
+
+@if (kind == CalendarKind.Birthdays)
+{
+    <div class="alert ok">This calendar is generated from the birthdays of the contacts in your address books and updates automatically. It is read-only on your devices.</div>
+}
+
+<div class="card">
+    <h2>Settings</h2>
+    <partial name="_ValidationSummary" />
+    <form method="post" asp-page-handler="Save" asp-route-id="@Model.Id" class="stack">
+        <div class="row">
+            <div class="field">
+                <label asp-for="DisplayName"></label>
+                <input asp-for="DisplayName" autofocus="@(isNew)" />
+            </div>
+            <div class="field" style="flex:0">
+                <label asp-for="Color"></label>
+                <input asp-for="Color" type="color" />
+            </div>
+        </div>
+        <div class="field">
+            <label asp-for="Description"></label>
+            <textarea asp-for="Description" rows="2"></textarea>
+        </div>
+        @if (kind == CalendarKind.Normal)
+        {
+            <div class="field">
+                <span class="label">Content</span>
+                <div class="checks">
+                    <label class="check"><input asp-for="Events" /> Events</label>
+                    <label class="check"><input asp-for="Tasks" /> Tasks (to-dos)</label>
+                    <label class="check"><input asp-for="Notes" /> Notes (journal)</label>
+                </div>
+                <span class="hint">Some clients (e.g. Apple Reminders) show calendars that support tasks as task lists.</span>
+            </div>
+        }
+        @if (kind == CalendarKind.Subscription)
+        {
+            <div class="row">
+                <div class="field">
+                    <label asp-for="SubscriptionUrl"></label>
+                    <input asp-for="SubscriptionUrl" />
+                </div>
+                <div class="field" style="max-width:220px">
+                    <label asp-for="RefreshMinutes"></label>
+                    <select asp-for="RefreshMinutes">
+                        <option value="15">15 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="360">6 hours</option>
+                        <option value="1440">1 day</option>
+                        <option value="10080">1 week</option>
+                    </select>
+                </div>
+            </div>
+            <p class="small muted">
+                Last updated: @(Model.Calendar!.SubscriptionLastFetchUtc is { } fetched ? fetched.ToString("yyyy-MM-dd HH:mm") + " UTC" : "never")
+                @if (Model.Calendar.SubscriptionError != null) { <br /><span style="color:var(--danger)">Last error: @Model.Calendar.SubscriptionError</span> }
+            </p>
+        }
+        @if (isNew)
+        {
+            <div class="field">
+                <label asp-for="Uri"></label>
+                <input asp-for="Uri" placeholder="generated from the name" />
+                <span class="hint">The last part of the calendar URL. Optional.</span>
+            </div>
+        }
+        <div class="row">
+            <button class="primary" type="submit">@(isNew ? "Create calendar" : "Save changes")</button>
+            @if (kind == CalendarKind.Subscription)
+            {
+                <button type="submit" formaction="?id=@Model.Id&handler=Refresh" formnovalidate>Refresh now</button>
+            }
+        </div>
+    </form>
+</div>
+
+@if (!isNew)
+{
+    <div class="card">
+        <h2>Sharing</h2>
+        <p class="muted">Shared calendars appear automatically in the other people's CalDAV clients. Sharing with a group includes everyone in it.</p>
+        @if (Model.Shares.Count > 0)
+        {
+            <table>
+                <thead><tr><th>With</th><th>Access</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var s in Model.Shares)
+                {
+                    <tr>
+                        <td>
+                            @if (s.Group != null) { <span class="badge">group</span> @s.Group.DisplayName }
+                            else { @s.Sharee!.DisplayName <span class="muted small">@s.Sharee.Username</span> }
+                        </td>
+                        <td>
+                            @if (kind == CalendarKind.Normal)
+                            {
+                                <form method="post" asp-page-handler="Access" asp-route-id="@Model.Id" asp-route-shareId="@s.Id">
+                                    <select name="access" onchange="this.form.submit()">
+                                        <option value="Read" selected="@(s.Access == ShareAccess.Read)">Read only</option>
+                                        <option value="ReadWrite" selected="@(s.Access == ShareAccess.ReadWrite)">Read &amp; write</option>
+                                    </select>
+                                </form>
+                            }
+                            else { <span>Read only</span> }
+                        </td>
+                        <td class="actions">
+                            <form method="post" asp-page-handler="Unshare" asp-route-id="@Model.Id" asp-route-shareId="@s.Id">
+                                <button class="small danger" type="submit">Stop sharing</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+        @if (Model.OtherUsers.Count > 0 || Model.Groups.Count > 0)
+        {
+            <form method="post" asp-page-handler="Share" asp-route-id="@Model.Id" class="row" style="margin-top:1rem">
+                <div class="field">
+                    <label asp-for="ShareWith"></label>
+                    <select asp-for="ShareWith">
+                        @if (Model.Groups.Count > 0)
+                        {
+                            <optgroup label="Groups">
+                                @foreach (var g in Model.Groups) { <option value="group:@g.Name">@g.DisplayName</option> }
+                            </optgroup>
+                        }
+                        <optgroup label="People">
+                            @foreach (var u in Model.OtherUsers) { <option value="user:@u.Username">@u.DisplayName (@u.Username)</option> }
+                        </optgroup>
+                    </select>
+                </div>
+                @if (kind == CalendarKind.Normal)
+                {
+                    <div class="field">
+                        <label asp-for="ShareAccess">Access</label>
+                        <select asp-for="ShareAccess">
+                            <option value="Read">Read only</option>
+                            <option value="ReadWrite">Read &amp; write</option>
+                        </select>
+                    </div>
+                }
+                <button class="primary" type="submit">Share</button>
+            </form>
+        }
+    </div>
+
+    @if (Model.Settings.PublicLinksEnabled)
+    {
+        <div class="card">
+            <h2>Public link</h2>
+            <p class="muted">Anyone with the link can subscribe to a read-only copy of this calendar, without an account.</p>
+            @if (Model.PublicUrl != null)
+            {
+                <dl class="kv small">
+                    <dt>Subscribe</dt><dd><code>@Model.WebcalUrl</code></dd>
+                    <dt>Download</dt><dd><code>@Model.PublicUrl</code></dd>
+                </dl>
+            }
+            <form method="post" asp-page-handler="Publish" asp-route-id="@Model.Id" class="row" style="margin-top:.75rem">
+                <label class="check"><input asp-for="PublicBusyOnly" /> @Html.DisplayNameFor(m => m.PublicBusyOnly)</label>
+                <button type="submit">@(Model.PublicUrl == null ? "Create public link" : "Update")</button>
+                @if (Model.PublicUrl != null)
+                {
+                    <button type="submit" formaction="?id=@Model.Id&handler=Publish&regenerate=true">New link</button>
+                    <button class="danger" type="submit" formaction="?id=@Model.Id&handler=Unpublish">Disable</button>
+                }
+            </form>
+        </div>
+    }
+
+    <div class="grid">
+        @if (kind == CalendarKind.Normal)
+        {
+            <div class="card">
+                <h2>Import</h2>
+                <p class="muted">Upload an iCalendar (.ics) file. Items with an existing UID are updated.</p>
+                <form method="post" asp-page-handler="Import" asp-route-id="@Model.Id" enctype="multipart/form-data" class="row">
+                    <div class="field"><input type="file" name="file" accept=".ics,text/calendar" /></div>
+                    <button type="submit">Import</button>
+                </form>
+            </div>
+        }
+        <div class="card">
+            <h2>Export</h2>
+            <p class="muted">Download everything in this calendar as a single .ics file.</p>
+            <a class="btn" asp-page-handler="Export" asp-route-id="@Model.Id">Download .ics</a>
+        </div>
+    </div>
+
+    @if (kind != CalendarKind.Birthdays)
+    {
+        <div class="card" style="margin-top:1.25rem">
+            <h2>@(kind == CalendarKind.Subscription ? "Unsubscribe" : "Delete calendar")</h2>
+            <p class="muted">@(kind == CalendarKind.Subscription
+                                ? "Removes this subscription and its downloaded events."
+                                : $"Moves this calendar and its {Model.ObjectCount} item(s) to the trash, from where it can be restored. It disappears for everyone it is shared with.")</p>
+            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Id" onsubmit="return confirm('Are you sure?')">
+                <button class="danger" type="submit">@(kind == CalendarKind.Subscription ? "Unsubscribe" : "Delete calendar")</button>
+            </form>
+        </div>
+    }
+}
