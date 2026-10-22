@@ -69,7 +69,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.Cookie.Name = "nullify.auth";
         o.Cookie.HttpOnly = true;
         o.Cookie.SameSite = SameSiteMode.Lax;
-        o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         o.ExpireTimeSpan = TimeSpan.FromDays(14);
         o.SlidingExpiration = true;
         o.Events.OnValidatePrincipal = CookieValidation.ValidateAsync;
@@ -131,12 +131,17 @@ var pathBase = config["PathBase"];
 if (!string.IsNullOrWhiteSpace(pathBase)) app.UsePathBase(pathBase);
 
 if (reverseProxyEnabled) app.UseForwardedHeaders();
-if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/error");
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/error");
+    app.UseHsts();
+}
 
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.XContentTypeOptions = "nosniff";
     ctx.Response.Headers["Referrer-Policy"] = "same-origin";
+    ctx.Response.Headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'";
     if (!ctx.Request.Path.StartsWithSegments("/dav")) ctx.Response.Headers.XFrameOptions = "DENY";
     await next();
 });
