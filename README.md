@@ -72,8 +72,8 @@ The server implements the requests used by Apple Calendar/Reminders/Contacts, DA
 
 *Import* (in the top menu) copies data from an existing CalDAV/CardDAV server into the signed-in account:
 
-1. Enter the old server's address (as used in your apps, e.g. https://example.com/baikal/dav.php/ or just https://dav.example.com/), username and password. Basic and Digest authentication are supported, so Baïkal works with either setting. For iCloud use https://caldav.icloud.com/ and https://contacts.icloud.com/ with an app-specific password.
-2. The server finds your calendars and address books through /.well-known, current-user-principal and the home sets, following redirects. Scheduling inboxes and server-side subscriptions are skipped. Read-only collections (shared with you, generated) are listed but not ticked.
+1. Enter the old server's address (as used in your apps, e.g. `https://example.com/baikal/dav.php/` or just `https://dav.example.com/`), username and password. Basic and Digest authentication are supported, so Baïkal works with either setting. For iCloud use `https://caldav.icloud.com/` and `https://contacts.icloud.com/` with an app-specific password.
+2. The server finds your calendars and address books through `/.well-known`, `current-user-principal` and the home sets, following redirects. Scheduling inboxes and server-side subscriptions are skipped. Read-only collections (shared with you, generated) are listed but not ticked.
 3. Choose what to import and start. The job runs in the background with progress on the page; each remote collection becomes a new local one with the same name, colour, description and content types, and items keep their file names and UIDs.
 4. Run it again at any time before switching your devices: new items are added and changed items updated (matched by UID). Nothing is ever changed on the old server, and nothing local is deleted.
 
@@ -83,7 +83,7 @@ The old server's password is kept encrypted (data protection key ring) so the im
 
 ## Using with DAVx⁵
 
-Add an account with *Login with URL and user name*, using https://<host>/dav/ and an app password. DAVx⁵ then finds:
+Add an account with *Login with URL and user name*, using `https://<host>/dav/` and an app password. DAVx⁵ then finds:
 
 - your calendars and address books, plus anything shared with you directly or through a group;
 - calendars of people who made you a **delegate**, via the proxy principals in your group memberships (enable *Refresh collection list* if they do not appear straight away);
@@ -93,31 +93,31 @@ Add an account with *Login with URL and user name*, using https://<host>/dav/ an
 
 ## Scheduling and invitations
 
-With *Settings → Meeting invitations* enabled (the default), saving an event or task that has attendees triggers implicit scheduling (RFC 6638 calendar-auto-schedule):
+With *Settings → Meeting invitations* enabled (the default), saving an event or task that has attendees triggers implicit scheduling (RFC 6638 `calendar-auto-schedule`):
 
 | Action | Local attendee or organizer | External address |
 |--------|-----------------------------|------------------|
-| Organizer creates or significantly changes an event | Copy delivered to the attendee's default calendar and inbox | iMIP REQUEST email |
-| Organizer removes an attendee or deletes the event | Attendee's copy marked CANCELLED | iMIP CANCEL email |
-| Attendee accepts, declines or tentatively accepts (or deletes) | Organizer's copy updated with the new PARTSTAT | iMIP REPLY email |
+| Organizer creates or significantly changes an event | Copy delivered to the attendee's default calendar and inbox | iMIP `REQUEST` email |
+| Organizer removes an attendee or deletes the event | Attendee's copy marked `CANCELLED` | iMIP `CANCEL` email |
+| Attendee accepts, declines or tentatively accepts (or deletes) | Organizer's copy updated with the new `PARTSTAT` | iMIP `REPLY` email |
 
-- Delivery results are recorded as SCHEDULE-STATUS on the attendee (1.2 delivered, 1.1 emailed, 5.1 not delivered). Attendees keep their own alarms.
-- Schedule-Tag / If-Schedule-Tag-Match are supported. Each user has inbox/ and outbox/ collections, and free/busy lookups can be POSTed to the outbox.
-- Emails need an SMTP server (*Settings → Mail server*), a sender address and optionally SMTP credentials under *Meeting invitations*. *Send test email* checks the setup. Messages come from the sender address with Reply-To set to the organizer.
+- Delivery results are recorded as `SCHEDULE-STATUS` on the attendee (1.2 delivered, 1.1 emailed, 5.1 not delivered). Attendees keep their own alarms.
+- `Schedule-Tag` / `If-Schedule-Tag-Match` are supported. Each user has `inbox/` and `outbox/` collections, and free/busy lookups can be POSTed to the outbox.
+- Emails need an SMTP server (*Settings → Mail server*), a sender address and optionally SMTP credentials under *Meeting invitations*. *Send test email* checks the setup. Messages come from the sender address with `Reply-To` set to the organizer.
 - Replies from external attendees go to the organizer's mailbox; the server does not read mailboxes, so those are processed by the organizer's mail or calendar app.
 
 ## Trash, quotas, subscriptions and public links
 
 - **Trash**: deleted events, tasks, notes, contacts and whole collections are kept for the retention period (*Settings*, default 30 days), whichever client deleted them (CalDAV, CardDAV, SyncML or the web UI). Restore them from the *Trash* page.
-- **Quotas**: set a default under *Settings* and per user on the user page. Clients see quota-used-bytes / quota-available-bytes (RFC 4331); uploads over quota get 507 Insufficient Storage. Generated collections and the trash do not count.
-- **Subscriptions**: *Calendars → Subscribe to a calendar* adds a read-only calendar that the server downloads from an https:// or webcal:// feed on a schedule, so every device sees it. Requests to loopback, private and link-local addresses are blocked unless the admin allows them (protection against server-side request forgery).
-- **Public links**: on a calendar's page, create a secret webcal:// link anyone can subscribe to, optionally showing only busy times. Links can be regenerated or disabled.
+- **Quotas**: set a default under *Settings* and per user on the user page. Clients see `quota-used-bytes` / `quota-available-bytes` (RFC 4331); uploads over quota get `507 Insufficient Storage`. Generated collections and the trash do not count.
+- **Subscriptions**: *Calendars → Subscribe to a calendar* adds a read-only calendar that the server downloads from an `https://` or `webcal://` feed on a schedule, so every device sees it. Requests to loopback, private and link-local addresses are blocked unless the admin allows them (protection against server-side request forgery).
+- **Public links**: on a calendar's page, create a secret `webcal://` link anyone can subscribe to, optionally showing only busy times. Links can be regenerated or disabled.
 
 ## Groups, delegation and generated collections
 
-- **Groups** (*Admin → Groups*): share a calendar or address book with a group, and everyone in it sees it. Membership changes take effect immediately. Groups also appear as principals under /dav/groups/.
-- **Delegation** (*Profile → Calendar delegates*): give someone read or read/write access to all your calendars. It is exposed through CalendarServer calendar-proxy-read / calendar-proxy-write principals, which Apple Calendar and DAVx⁵ understand.
-- **Birthday calendar**: generated per user from the BDAY of contacts in their own address books and kept up to date.
+- **Groups** (*Admin → Groups*): share a calendar or address book with a group, and everyone in it sees it. Membership changes take effect immediately. Groups also appear as principals under `/dav/groups/`.
+- **Delegation** (*Profile → Calendar delegates*): give someone read or read/write access to all your calendars. It is exposed through CalendarServer `calendar-proxy-read` / `calendar-proxy-write` principals, which Apple Calendar and DAVx⁵ understand.
+- **Birthday calendar**: generated per user from the `BDAY` of contacts in their own address books and kept up to date.
 - **Directory**: a read-only address book in every user's account listing everyone on the server, for autocompleting colleagues.
 - Both can be switched off server-wide under *Settings*.
 
@@ -221,20 +221,24 @@ Owners share a calendar or address book with another user from its edit page, ch
 - CardDAV (RFC 6352): `addressbook-query` (anyof/allof, match types, result limits), `addressbook-multiget`
 - Extended MKCOL (RFC 5689), collection synchronization `sync-collection` (RFC 6578), `expand-property` (RFC 3253), CalendarServer `getctag`, Apple calendar colour/order
 - Recurrence: `RRULE` (all frequencies, `BYxxx`, `BYSETPOS`, `COUNT`/`UNTIL`), `RDATE`, `EXDATE`, `RECURRENCE-ID` overrides; time zones via IANA/Windows IDs or embedded `VTIMEZONE`
+- Scheduling: RFC 6638 implicit scheduling (`calendar-auto-schedule`, inbox/outbox, `Schedule-Tag`, outbox free/busy), iMIP (RFC 6047) over SMTP (STARTTLS/TLS, AUTH PLAIN/LOGIN)
+- CalendarServer `calendar-proxy` delegation, group principals, quotas (RFC 4331), vCard version negotiation (RFC 6352 §5.1.1 / §8.6)
+- [WebDAV-Push](https://github.com/bitfireAT/webdav-push): `push-register`, `transports`/`topic` properties, Web Push (RFC 8030) with aes128gcm message encryption (RFC 8291) and VAPID (RFC 8292)
 - SyncML Data Synchronization 1.1/1.2 (XML and WBXML), IMAP4rev1 login (RFC 3501, STARTTLS, SASL PLAIN), Mozilla autoconfig 1.1, Microsoft Autodiscover POX/v2
+- Migration client: RFC 6764 discovery, `current-user-principal` / home sets, multiget with GET fallback, Basic and Digest authentication
 
-Not implemented: scheduling (iTIP inbox/outbox, RFC 6638) and email invitations, CalendarServer sharing invitations (sharing is managed in the web UI), `calendar-data` partial retrieval/`expand`, `LOCK`/`UNLOCK`, `COPY`, Digest authentication. In SyncML: MD5 credentials (passwords are not stored in a reversible form), large-object (`MoreData`) splitting, server-alerted sync, filters and hierarchical sync.
+Not implemented: CalendarServer/WebDAV sharing invitations from clients (sharing is managed in the web UI), processing iMIP replies that arrive by email, `calendar-data` partial retrieval/`expand`, managed attachments, time zones by reference, JMAP, `LOCK`/`UNLOCK`, `COPY`, Digest authentication for clients connecting to this server. In SyncML: MD5 credentials (passwords are not stored in a reversible form), large-object (`MoreData`) splitting, server-alerted sync, filters and hierarchical sync.
 
 ## CI/CD
 
-[.gitea/workflows/CalDav.yml](.gitea/workflows/CalDav.yml) runs on Gitea Actions for pushes to main, * tags, pull requests and manual runs:
+[.gitea/workflows/CalDav.yml](.gitea/workflows/CalDav.yml) runs on Gitea Actions for pushes to `main`, `v*` tags, pull requests and manual runs:
 
-1. docker build --target test . runs the whole test suite inside the SDK image (the runner needs no .NET).
-2. Builds the image (version from the tag, otherwise  .0.0-ci.<sha>) and smoke-tests it: /health, the first-run setup page, and the DAV endpoints being gated until setup.
-3. Except for pull requests, pushes git.nullify.net/simon/nullify-caldav:<sha>; main also pushes :latest, and a 1.2.3 tag pushes :1.2.3, :1.2 and :latest.
-4. On main and tags, calls the Portainer webhook if one is configured.
+1. `docker build --target test .` runs the whole test suite inside the SDK image (the runner needs no .NET).
+2. Builds the image (version from the tag, otherwise `0.0.0-ci.<sha>`) and smoke-tests it: `/health`, the first-run setup page, and the DAV endpoints being gated until setup.
+3. Except for pull requests, pushes `git.nullify.net/simon/nullify-caldav:<sha>`; `main` also pushes `:latest`, and a `v1.2.3` tag pushes `:1.2.3`, `:1.2` and `:latest`.
+4. On `main` and tags, calls the Portainer webhook if one is configured.
 
-Repository secrets: GITEADOCKERTOKEN (token with package write for simon) and, optionally, CALDAV_PORTAINER_WEBHOOK. To run the image from the registry, replace uild: . in docker-compose.yml with image: git.nullify.net/simon/nullify-caldav:latest.
+Repository secrets: `GITEADOCKERTOKEN` (token with package write for the registry user) and, optionally, `CALDAV_PORTAINER_WEBHOOK`. Forks should change `IMAGE` and the registry login in the workflow. To run the image from the registry, replace `build: .` in `docker-compose.yml` with `image: git.nullify.net/simon/nullify-caldav:latest`.
 
 ## Development
 
@@ -260,3 +264,9 @@ src/Nullify.CalDav
 ### Dependencies
 
 Only Microsoft packages are referenced: ASP.NET Core, `Microsoft.EntityFrameworkCore.Sqlite` and `Microsoft.AspNetCore.Authentication.OpenIdConnect`. The SQLite provider brings in the native SQLite bundle (`SQLitePCLRaw`) transitively, which is required to talk to SQLite at all. The IMAP and SMTP clients, Web Push encryption, WBXML codec and format converters are implemented in this project.
+
+## License
+
+Copyright 2026 Simon Soanes.
+
+Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution and third-party components. Unless required by applicable law or agreed to in writing, the software is distributed on an "AS IS" basis, without warranties or conditions of any kind.

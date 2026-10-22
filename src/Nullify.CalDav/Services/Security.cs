@@ -1,3 +1,6 @@
+// Copyright 2026 Simon Soanes
+// SPDX-License-Identifier: Apache-2.0
+
 using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Security.Cryptography;

@@ -21,6 +21,9 @@ COPY tests/ tests/
 RUN dotnet test tests/Nullify.CalDav.Tests -c Release --no-restore --logger "console;verbosity=normal"
 
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
+LABEL org.opencontainers.image.title="Nullify.CalDav" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.authors="Simon Soanes"
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     Storage__DataDirectory=/data \

@@ -1,3 +1,6 @@
+// Copyright 2026 Simon Soanes
+// SPDX-License-Identifier: Apache-2.0
+
 using Microsoft.EntityFrameworkCore;
 using Nullify.CalDav.Dav;
 using Nullify.CalDav.Data;

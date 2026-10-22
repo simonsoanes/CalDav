@@ -1,7 +1,7 @@
 # CI/CD for Nullify.CalDav: the test suite, then the server image pushed to the Gitea container registry as
 # git.nullify.net/simon/nullify-caldav.
 #
-# Secrets (same names as the other Nullify/Fizl repositories):
+# Secrets:
 #   GITEADOCKERTOKEN         Gitea access token with package write for user "simon" (registry login).
 #   CALDAV_PORTAINER_WEBHOOK Optional Portainer stack/service webhook URL; when set, main and tag builds redeploy.
 #

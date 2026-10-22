@@ -4,6 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Authors>Simon Soanes</Authors>
+    <Product>Nullify.CalDav</Product>
+    <Copyright>Copyright 2026 Simon Soanes</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://git.nullify.net/Simon/Nullify.CalDav</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

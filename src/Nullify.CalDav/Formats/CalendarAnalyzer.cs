@@ -1,3 +1,6 @@
+// Copyright 2026 Simon Soanes
+// SPDX-License-Identifier: Apache-2.0
+
 namespace Nullify.CalDav.Formats;
 
 /// <summary>A single (possibly recurring) instance of a component, in UTC.</summary>

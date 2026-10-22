@@ -1,3 +1,6 @@
+// Copyright 2026 Simon Soanes
+// SPDX-License-Identifier: Apache-2.0
+
 using System.Globalization;
 using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +14,7 @@ namespace Nullify.CalDav.Dav;
 /// <summary>Computes live WebDAV, CalDAV, CardDAV, scheduling, quota and push properties for resources.</summary>
 public sealed class DavPropertyProvider(DavResolver resolver, IServiceProvider services)
 {
-    public const string SyncTokenPrefix = "http://nullify.network/ns/sync/";
+    public const string SyncTokenPrefix = "https://nullify.net/ns/caldav/sync/";
 
     private DavPaths Paths => resolver.Paths;
     private AppDbContext Db => resolver.Db;

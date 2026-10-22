@@ -1,3 +1,6 @@
+// Copyright 2026 Simon Soanes
+// SPDX-License-Identifier: Apache-2.0
+
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;

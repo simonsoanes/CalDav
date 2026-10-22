@@ -1,0 +1,12 @@
+Nullify.CalDav
+Copyright 2026 Simon Soanes
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It depends on the following third-party components, which are distributed under their own licenses:
+
+- ASP.NET Core, Entity Framework Core and Microsoft.Data.Sqlite (Microsoft, MIT License)
+- Microsoft.AspNetCore.Authentication.OpenIdConnect and Microsoft.IdentityModel (Microsoft, MIT License)
+- SQLitePCLRaw (Eric Sink, Apache License 2.0)
+- SQLite (public domain)
+- MSTest (Microsoft, MIT License; tests only)
