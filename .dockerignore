@@ -1,6 +1,6 @@
 **/bin/
 **/obj/
-**/data/
+**/data/keys/
 **/TestResults/
 **/*.db
 **/*.db-shm

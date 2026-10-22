@@ -1,9 +1,11 @@
 bin/
 obj/
-data/
+# Runtime data (SQLite database and data protection keys). Listed by file rather than by the "data" directory name:
+# Git on Windows matches case-insensitively and would otherwise also ignore the source folder src/Nullify.CalDav/Data/.
 *.db
 *.db-shm
 *.db-wal
+src/Nullify.CalDav/data/keys/
 .vs/
 .vscode/
 .idea/
