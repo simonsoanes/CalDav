@@ -213,6 +213,8 @@ SSO applies to the web UI. Sync clients authenticate with app passwords, which S
 
 Owners share a calendar or address book with another user from its edit page, choosing **read only** or **read & write**. The shared collection appears automatically in the sharee's calendar/address book home (and can be targeted by SyncML as `calendar/<name>`), so it shows up in their clients without extra configuration. Clients see the access level through `DAV:current-user-privilege-set`; sharees may rename/recolour their own view, and deleting it from the client simply removes the share.
 
+Calendars can also be shared from CalDAV clients, through either draft-pot-webdav-resource-sharing (`POST` of `DAV:share-resource`, `DAV:invite`, `DAV:share-access`) or CalendarServer sharing (`POST` of `CS:share`, `CS:invite`, `CS:allowed-sharing-modes`); both are advertised in the `DAV` header. Sharees are named by `mailto:` address, user principal or group principal (`/dav/groups/<name>/`), and `no-access` or `CS:remove` stops sharing. As in the web UI, a share takes effect at once (no invitation to accept), and only the calendar's owner can change it.
+
 ## Protocol support
 
 - WebDAV (RFC 4918): `OPTIONS`, `GET`, `HEAD`, `PUT`, `DELETE`, `MOVE`, `PROPFIND`, `PROPPATCH`, `MKCOL`, ETags and `If-Match`/`If-None-Match`
@@ -222,12 +224,13 @@ Owners share a calendar or address book with another user from its edit page, ch
 - Extended MKCOL (RFC 5689), collection synchronization `sync-collection` (RFC 6578), `expand-property` (RFC 3253), CalendarServer `getctag`, Apple calendar colour/order
 - Recurrence: `RRULE` (all frequencies, `BYxxx`, `BYSETPOS`, `COUNT`/`UNTIL`), `RDATE`, `EXDATE`, `RECURRENCE-ID` overrides; time zones via IANA/Windows IDs or embedded `VTIMEZONE`
 - Scheduling: RFC 6638 implicit scheduling (`calendar-auto-schedule`, inbox/outbox, `Schedule-Tag`, outbox free/busy), iMIP (RFC 6047) over SMTP (STARTTLS/TLS, AUTH PLAIN/LOGIN)
+- Calendar sharing from clients: draft-pot-webdav-resource-sharing and CalendarServer `CS:share`
 - CalendarServer `calendar-proxy` delegation, group principals, quotas (RFC 4331), vCard version negotiation (RFC 6352 §5.1.1 / §8.6)
 - [WebDAV-Push](https://github.com/bitfireAT/webdav-push): `push-register`, `transports`/`topic` properties, Web Push (RFC 8030) with aes128gcm message encryption (RFC 8291) and VAPID (RFC 8292)
 - SyncML Data Synchronization 1.1/1.2 (XML and WBXML), IMAP4rev1 login (RFC 3501, STARTTLS, SASL PLAIN), Mozilla autoconfig 1.1, Microsoft Autodiscover POX/v2
 - Migration client: RFC 6764 discovery, `current-user-principal` / home sets, multiget with GET fallback, Basic and Digest authentication
 
-Not implemented: CalendarServer/WebDAV sharing invitations from clients (sharing is managed in the web UI), processing iMIP replies that arrive by email, `calendar-data` partial retrieval/`expand`, managed attachments, time zones by reference, JMAP, `LOCK`/`UNLOCK`, `COPY`, Digest authentication for clients connecting to this server. In SyncML: MD5 credentials (passwords are not stored in a reversible form), large-object (`MoreData`) splitting, server-alerted sync, filters and hierarchical sync.
+Not implemented: sharing address books from clients, sharing invitations that sharees accept or decline (shares apply at once), processing iMIP replies that arrive by email, `calendar-data` partial retrieval/`expand`, managed attachments, time zones by reference, JMAP, `LOCK`/`UNLOCK`, `COPY`, Digest authentication for clients connecting to this server. In SyncML: MD5 credentials (passwords are not stored in a reversible form), large-object (`MoreData`) splitting, server-alerted sync, filters and hierarchical sync.
 
 ## CI/CD
 

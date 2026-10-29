@@ -19,7 +19,7 @@ namespace Nullify.CalDav.Dav;
 public sealed partial class DavHandler
 {
     public const string Realm = "Nullify.CalDav";
-    public const string DavCapabilities = "1, 3, access-control, calendar-access, calendar-auto-schedule, calendar-proxy, addressbook, extended-mkcol";
+    public const string DavCapabilities = "1, 3, access-control, calendar-access, calendar-auto-schedule, calendar-proxy, addressbook, extended-mkcol, resource-sharing, calendarserver-sharing";
     private const string AllowedMethods = "OPTIONS, GET, HEAD, POST, DELETE, PROPFIND, PROPPATCH, PUT, REPORT, MKCOL, MKCALENDAR, MOVE";
 
     private static readonly string[] MutatingMethods = ["PUT", "DELETE", "MOVE", "MKCOL", "MKCALENDAR", "PROPPATCH", "POST"];

@@ -207,6 +207,7 @@ public sealed class DavPropertyProvider(DavResolver resolver, IServiceProvider s
                 if (QuotaProps.Contains(name)) return await QuotaAsync(c.Calendar.OwnerId, name, ct);
                 if (PushProps.Contains(name)) return PushProperty(CollectionChange.Calendar, c.Calendar.Id, name);
                 if (c.IsInbox) return InboxProperty(c, name);
+                if (SharingProps.Contains(name)) return await SharingPropertyAsync(c, name, ct);
                 return CalendarProperty(c, name);
 
             case AddressBookNode b:
@@ -425,6 +426,49 @@ public sealed class DavPropertyProvider(DavResolver resolver, IServiceProvider s
         if (name == CS + "source" && cal.SubscriptionUrl != null) return HrefProp(name, cal.SubscriptionUrl);
         if (name == CS + "shared-url" && !c.IsOwner) return HrefProp(name, Paths.Calendar(cal.Owner.Username, cal.Uri));
         return null;
+    }
+
+    private static readonly XName[] SharingProps = [D + "invite", CS + "invite", D + "share-access", CS + "allowed-sharing-modes"];
+
+    /// <summary>
+    /// Sharing as clients see it (draft-pot-webdav-resource-sharing and CalendarServer): who the
+    /// owner shares a calendar with, and the current user's access to it. Shares need no
+    /// accepting, so every sharee is reported as having accepted.
+    /// </summary>
+    private async Task<XElement?> SharingPropertyAsync(CalendarNode c, XName name, CancellationToken ct)
+    {
+        var cal = c.Calendar;
+        if (name == CS + "allowed-sharing-modes") return c.IsOwner ? Prop(name, new XElement(CS + "can-be-shared")) : null;
+        if (!c.IsOwner)
+        {
+            if (name != D + "share-access") return null;
+            return c.Share == null ? null : Prop(name, new XElement(D + (c.Share.Access == ShareAccess.ReadWrite ? "read-write" : "read")));
+        }
+
+        var shares = await Db.CalendarShares.Where(s => s.CalendarId == cal.Id && (s.Sharee != null || s.Group != null))
+            .Include(s => s.Sharee).Include(s => s.Group).OrderBy(s => s.Id).ToListAsync(ct);
+        if (name == D + "share-access") return Prop(name, new XElement(D + (shares.Count > 0 ? "shared-owner" : "not-shared")));
+
+        var sharees = shares.Select(s => (
+            Href: s.Sharee != null
+                ? (string.IsNullOrEmpty(s.Sharee.Email) ? Paths.Principal(s.Sharee.Username) : "mailto:" + s.Sharee.Email)
+                : Paths.Group(s.Group!.Name),
+            Name: s.Sharee?.DisplayName ?? s.Group!.DisplayName,
+            ReadWrite: s.Access == ShareAccess.ReadWrite)).ToList();
+        var owner = cal.Owner;
+        if (name == D + "invite")
+            return Prop(name,
+                new XElement(D + "sharee", DavXml.Href(Paths.Principal(owner.Username)),
+                    new XElement(D + "prop", new XElement(D + "displayname", owner.DisplayName)),
+                    new XElement(D + "share-access", new XElement(D + "shared-owner")), new XElement(D + "invite-accepted")),
+                sharees.Select(s => new XElement(D + "sharee", DavXml.Href(s.Href),
+                    new XElement(D + "prop", new XElement(D + "displayname", s.Name)),
+                    new XElement(D + "share-access", new XElement(D + (s.ReadWrite ? "read-write" : "read"))),
+                    new XElement(D + "invite-accepted"))));
+        return Prop(name,
+            new XElement(CS + "organizer", DavXml.Href(Paths.Principal(owner.Username)), new XElement(CS + "common-name", owner.DisplayName)),
+            sharees.Select(s => new XElement(CS + "user", DavXml.Href(s.Href), new XElement(CS + "common-name", s.Name),
+                new XElement(CS + "invite-accepted"), new XElement(CS + "access", new XElement(CS + (s.ReadWrite ? "read-write" : "read"))))));
     }
 
     private XElement? AddressBookProperty(AddressBookNode b, XName name)

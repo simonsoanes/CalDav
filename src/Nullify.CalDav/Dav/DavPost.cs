@@ -22,7 +22,11 @@ public sealed partial class DavHandler
                 await OutboxPostAsync(outbox);
                 return;
             case CalendarNode or AddressBookNode:
-                await PushRegisterAsync(node);
+                var doc = await DavXml.ReadBodyAsync(Request, Ct);
+                if (node is CalendarNode calendar && doc?.Root is { } root && (root.Name == D + "share-resource" || root.Name == CS + "share"))
+                    await SharePostAsync(calendar, root);
+                else
+                    await PushRegisterAsync(node, doc);
                 return;
             default:
                 throw new DavException(405, message: "POST is not supported on this resource");
@@ -31,11 +35,10 @@ public sealed partial class DavHandler
 
     // ---------------------------------------------------------------- WebDAV-Push registration
 
-    private async Task PushRegisterAsync(DavNode node)
+    private async Task PushRegisterAsync(DavNode node, XDocument? doc)
     {
         var settings = _http.RequestServices.GetRequiredService<SettingsService>().Current;
         if (!settings.PushEnabled) throw new DavException(403, message: "Push is disabled on this server");
-        var doc = await DavXml.ReadBodyAsync(Request, Ct);
         if (doc?.Root?.Name != P + "push-register") throw new DavException(415, message: "Expected a push-register request");
 
         var (type, id) = node switch
