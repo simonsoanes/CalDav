@@ -46,11 +46,11 @@ jobs:
 
       # Runs the test suite inside the SDK stage of the Dockerfile, so the runner needs no .NET.
       - name: Tests
-        run: docker build --target test --build-arg VERSION="$VERSION" .
+        run: docker build --pull --target test --build-arg VERSION="$VERSION" .
 
       - name: Build image
         run: |
-          docker build --build-arg VERSION="$VERSION" \
+          docker build --pull --build-arg VERSION="$VERSION" \
             --label org.opencontainers.image.source="${{ github.server_url }}/${{ github.repository }}" \
             --label org.opencontainers.image.revision="${{ github.sha }}" \
             --label org.opencontainers.image.version="$VERSION" \
@@ -60,7 +60,7 @@ jobs:
       - name: Smoke test image
         run: |
           docker run -d --name caldav-smoke "$IMAGE:${{ github.sha }}"
-          probe() { docker run --rm --network container:caldav-smoke curlimages/curl:8.11.1 -sS "$@"; }
+          probe() { docker run --rm --network container:caldav-smoke curlimages/curl:8.23.0 -sS "$@"; }
           for i in $(seq 1 30); do
             probe -f -o /dev/null http://127.0.0.1:8080/health 2>/dev/null && break
             sleep 2
